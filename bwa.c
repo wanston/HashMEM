@@ -304,7 +304,7 @@ bwaidx_t *bwa_idx_load_from_disk(const char *hint, int which)
     strcpy(fnw, hint);
     strcat(fnw, ".mmi2");
 
-    idx_rdr = mm_idx_reader_open(fnw, &ipt, fnw);
+    idx_rdr = mm_idx_reader_open(fnw, &ipt, NULL);
     if (idx_rdr == 0) {
         fprintf(stderr, "[ERROR] failed to open file '%s'\n", fnw);
         return 1;
@@ -313,6 +313,7 @@ bwaidx_t *bwa_idx_load_from_disk(const char *hint, int which)
     mm_idx_reader_close(idx_rdr);
 
     idx->mi = mi;
+    free(fnw);
 	/******************/
 	return idx;
 }

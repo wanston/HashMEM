@@ -118,10 +118,6 @@ static void smem_aux_destroy(smem_aux_t *a)
 	free(a);
 }
 
-extern atomic_ulong pass1_all_mems_num;
-extern atomic_ulong pass2_all_mems_num;
-extern atomic_ulong pass1_valid_mems_num;
-extern atomic_ulong pass2_valid_mems_num;
 
 /**
  * seed的过程，从read中找到精确匹配的mem。该函数处理一条read。
@@ -186,17 +182,10 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
 		bwt_smem1(bwt, len, seq, (start + end)>>1, p->x[2]+1, &a->mem1, a->tmpv);
 
         for (i = 0; i < a->mem1.n; ++i){
-            char buf[128];
-            int good_mem = 0;
 			if ((uint32_t)a->mem1.a[i].info - (a->mem1.a[i].info>>32) >= opt->min_seed_len){
 				kv_push(bwtintv_t, a->mem, a->mem1.a[i]);
-                atomic_fetch_add(&pass2_valid_mems_num, 1);
-                good_mem = 1;
             }
-            sprintf(buf, "%d\t%d\t%d\t%ld\t%d\n", 2, (int32_t)(a->mem1.a[i].info >> 32), (int32_t)a->mem1.a[i].info, a->mem1.a[i].x[2], good_mem);
-            fputs(buf, mem_files[pro_tid]);
         }
-        atomic_fetch_add(&pass2_all_mems_num, a->mem1.n);
     }
 	PROFILE_END(seed_pass2);
 
@@ -1270,14 +1259,20 @@ typedef struct {
 	int64_t n_processed;
 } worker_t;
 
+/**
+ * single end下比对一条read，pair end下比对一对read。
+ * @param data
+ * @param i
+ * @param tid
+ */
 static void worker1(void *data, int i, int tid)
 {
 	worker_t *w = (worker_t*)data; // 这里的data是下面mem_process_seqs函数里面创建的worker_t
 
-    extern FILE* mem_files[PROFILE_THREAD_NUM];
-    char buf[128];
-    sprintf(buf, "%s\t%d\n", w->seqs[i].name, w->seqs[i].l_seq);
-    fputs(buf, mem_files[pro_tid]);
+//    extern FILE* mem_files[PROFILE_THREAD_NUM];
+//    char buf[128];
+//    sprintf(buf, "%s\t%d\n", w->seqs[i].name, w->seqs[i].l_seq);
+//    fputs(buf, mem_files[pro_tid]);
 
 	if (!(w->opt->flag&MEM_F_PE)) { // single_end
 		if (bwa_verbose >= 4) printf("=====> Processing read '%s' <=====\n", w->seqs[i].name);
@@ -1289,7 +1284,7 @@ static void worker1(void *data, int i, int tid)
 		w->regs[i<<1|1] = mem_align1_core(w->opt, w->bwt, w->bns, w->pac, w->mi, w->seqs[i<<1|1].l_seq, w->seqs[i<<1|1].seq, w->aux[tid]);// 对paired-end另一条read执行aln
 	}
 
-	fputc('\n', mem_files[pro_tid]);
+//	fputc('\n', mem_files[pro_tid]);
 }
 
 static void worker2(void *data, int i, int tid)

@@ -233,26 +233,26 @@ int main_mem(int argc, char *argv[])
 	}
 
 	/**********Add By WangTong*************/
-    const char *s = argv[optind + 1];
-    char mem_path[128];
-    size_t k=0;
-    for(k = strlen(s)-1; k>=0; k--){
-        if(s[k] == '/') break;
-    }
-    char filename[32] = "mem_file_0.txt";
-    strncpy(mem_path, s, k+1);
-    mem_path[k+1] = '\0';
-    strcat(mem_path, filename);
-
-    extern FILE *mem_files[PROFILE_THREAD_NUM];
-	int ii;
-	for(ii = 0; ii < opt->n_threads; ii++){
-
-        mem_path[strlen(mem_path) - 5] += 1;
-
-        fprintf(stderr, "mem profles %s\n", mem_path);
-	    mem_files[ii] = fopen(mem_path, "w");
-	}
+//    const char *s = argv[optind + 1];
+//    char mem_path[128];
+//    size_t k=0;
+//    for(k = strlen(s)-1; k>=0; k--){
+//        if(s[k] == '/') break;
+//    }
+//    char filename[32] = "mem_file_0.txt";
+//    strncpy(mem_path, s, k+1);
+//    mem_path[k+1] = '\0';
+//    strcat(mem_path, filename);
+//
+//    extern FILE *mem_files[PROFILE_THREAD_NUM];
+//	int ii;
+//	for(ii = 0; ii < opt->n_threads; ii++){
+//
+//        mem_path[strlen(mem_path) - 5] += 1;
+//
+//        fprintf(stderr, "mem profles %s\n", mem_path);
+//	    mem_files[ii] = fopen(mem_path, "w");
+//	}
     /**********Add By WangTong*************/
 
 	if (rg_line) {
