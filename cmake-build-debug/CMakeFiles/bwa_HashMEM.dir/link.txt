@@ -1,0 +1,1 @@
+/usr/bin/cc -g   CMakeFiles/bwa_HashMEM.dir/main.c.o  -o bwa_HashMEM 

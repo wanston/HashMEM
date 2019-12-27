@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="bwa"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/home/wt/Project/bwa-HashMEM/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/home/wt/Project/bwa-HashMEM/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/home/wt/Project/bwa-HashMEM/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="bwa">
+				<Option output="/home/wt/Project/bwa-HashMEM/cmake-build-debug/bwa" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/wt/Project/bwa-HashMEM/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/usr/include/c++/5"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/5"/>
+					<Add directory="/usr/include/c++/5/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/5/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 bwa"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="bwa/fast">
+				<Option output="/home/wt/Project/bwa-HashMEM/cmake-build-debug/bwa" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/wt/Project/bwa-HashMEM/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/usr/include/c++/5"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/5"/>
+					<Add directory="/usr/include/c++/5/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/5/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 bwa/fast"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/wt/Project/bwa-HashMEM/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/QSufSort.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/QSufSort.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bamlite.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bamlite.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bntseq.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bntseq.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwa.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwa.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwamem.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwamem.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwamem_extra.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwamem_pair.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwape.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwase.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwase.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwaseqio.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwashm.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwt.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwt.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwt_gen.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwt_lite.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwt_lite.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwtaln.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwtaln.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwtgap.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwtgap.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwtindex.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwtsw2_aux.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwtsw2_chain.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwtsw2_core.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwtsw2_main.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/bwtsw2_pair.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/fastmap.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/is.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/kopen.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/kstring.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/kstring.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/ksw.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/ksw.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/kthread.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/kvec.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/main.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/malloc_wrap.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/malloc_wrap.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/maxk.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/mmp2_bseq.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/mmp2_bseq.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/mmp2_index.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/mmp2_kalloc.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/mmp2_kalloc.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/mmp2_misc.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/mmp2_options.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/mmp2_sketch.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/pemerge.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/rle.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/rle.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/rope.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/rope.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/utils.c">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/utils.h">
+			<Option target="bwa"/>
+		</Unit>
+		<Unit filename="/home/wt/Project/bwa-HashMEM/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>
