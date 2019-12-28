@@ -22,6 +22,8 @@
 #include "bwt.h"
 #include "mmp2_mmpriv.h"
 #include "mmp2_minimap.h"
+#include "mmp2_kvec.h"
+#include "khash.h"
 
 #ifdef USE_MALLOC_WRAPPERS
 #  include "malloc_wrap.h"
@@ -157,19 +159,23 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
 
     for(i=0; i<mv.n; i++){
         // TODO: check if kmer is in SMEM，maybe there is better method
+        int good = 1;
         for(j = 0; j < a->mem.n; ++j){
             uint32_t left = mv.a[i].y.info >> 32;
             uint32_t right = (uint32_t)mv.a[i].y.info;
             if(left >= a->mem.a[i].info>>32 && right <= (uint32_t)a->mem.a[i].info){
-                continue;
+                good = 0;
+                break;
             }
         }
-
-        bwt_smem2(bwt, len, seq, start_width, &a->mem1, a->tmpv, mv.a[i].y); // 计算得到的SMEM均在a->mem1中
-        for (j = 0; j < a->mem1.n; ++j) {
-            kv_push(bwtintv_t, a->mem, a->mem1.a[i]);
+        if(good){
+            bwt_smem2(bwt, len, seq, start_width, &a->mem1, a->tmpv, mv.a[i].y); // 计算得到的SMEM均在a->mem1中
+            for (j = 0; j < a->mem1.n; ++j) {
+                kv_push(bwtintv_t, a->mem, a->mem1.a[i]);
+            }
         }
     }
+    kv_destroy(mv);
 	PROFILE_END(seed_pass1);
 
 	// second pass: find MEMs inside a long SMEM
@@ -350,6 +356,10 @@ mem_chain_v mem_chain(const mem_opt_t *opt, const bwt_t *bwt, const bntseq_t *bn
 			s.rbeg = tmp.pos = bwt_sa(bwt, p->x[0] + k); // this is the base coordinate in the forward-reverse reference
 			s.qbeg = p->info>>32;
 			s.score= s.len = slen;
+			if(s.rbeg > s.rbeg + s.len){
+                fprintf(stderr, "%d %d\n", s.rbeg, s.len);
+                fprintf(stderr, "x: %ld %ld %ld info:%ld %d i: %d n: %ld", p->x[0], p->x[1], p->x[2], p->info>>32, (uint32_t)p->info, i, aux->mem.n);
+            }
 			rid = bns_intv2rid(bns, s.rbeg, s.rbeg + s.len);
 			if (rid < 0) continue; // bridging multiple reference sequences or the forward-reverse boundary; TODO: split the seed; don't discard it!!!
 			if (kb_size(tree)) {

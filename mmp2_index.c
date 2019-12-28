@@ -269,7 +269,7 @@ static void worker_post(void *g, long i, int tid)
 			int good;
             bwtintv_t intv = get_kmer_interval(p->y.x[0], kmer_span, bwt, &good);
             if(good) kh_val(h, itr) = intv; // 低kmer_span*2位存储的是kmer。其中高位表示左边的碱基，低位表示右边的碱基。
-            printf("%lx\n", p->x>>8>>mi->b);
+//            printf("%lx\n", p->x>>8>>mi->b);
             // TODO: 这里还得再确认一下，得到的interval对应的前缀字符串，需要确实匹配到原字符串上。
 		}
 	}
