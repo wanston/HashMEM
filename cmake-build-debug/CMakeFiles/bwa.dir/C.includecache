@@ -155,6 +155,10 @@ mmp2_mmpriv.h
 /home/wt/Project/bwa-HashMEM/mmp2_mmpriv.h
 mmp2_minimap.h
 /home/wt/Project/bwa-HashMEM/mmp2_minimap.h
+mmp2_kvec.h
+/home/wt/Project/bwa-HashMEM/mmp2_kvec.h
+khash.h
+/home/wt/Project/bwa-HashMEM/khash.h
 malloc_wrap.h
 /home/wt/Project/bwa-HashMEM/malloc_wrap.h
 kbtree.h

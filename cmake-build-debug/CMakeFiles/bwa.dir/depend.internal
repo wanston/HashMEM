@@ -34,12 +34,15 @@ CMakeFiles/bwa.dir/bwamem.c.o
  /home/wt/Project/bwa-HashMEM/bwamem.h
  /home/wt/Project/bwa-HashMEM/bwt.h
  /home/wt/Project/bwa-HashMEM/kbtree.h
+ /home/wt/Project/bwa-HashMEM/khash.h
  /home/wt/Project/bwa-HashMEM/ksort.h
  /home/wt/Project/bwa-HashMEM/kstring.h
  /home/wt/Project/bwa-HashMEM/ksw.h
  /home/wt/Project/bwa-HashMEM/kvec.h
  /home/wt/Project/bwa-HashMEM/malloc_wrap.h
  /home/wt/Project/bwa-HashMEM/mmp2_bseq.h
+ /home/wt/Project/bwa-HashMEM/mmp2_kalloc.h
+ /home/wt/Project/bwa-HashMEM/mmp2_kvec.h
  /home/wt/Project/bwa-HashMEM/mmp2_minimap.h
  /home/wt/Project/bwa-HashMEM/mmp2_mmpriv.h
  /home/wt/Project/bwa-HashMEM/profile.h

@@ -138,6 +138,7 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
 	int start_width = 1;
 	int split_len = (int)(opt->min_seed_len * opt->split_factor + .499);
 	a->mem.n = 0;
+
 	// first pass: find all SMEMs
 	PROFILE_START(seed_pass1);
 	/***********New PASS 1****************/
@@ -145,14 +146,15 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
 //	int k = 21;
 	mm320_v mv = {0,0,0};
 	size_t slow, fast;
-    mm_sketch(NULL, seq, len, 11, 21, 0, 0, &mv);
+    mm_sketch1(NULL, seq, len, 11, 21, 0, 0, &mv);
     for(slow=0, fast=0; fast<mv.n; fast++){
         int t;
-        const bwtintv_t* r = mm_idx_get(mi, mv.a[fast].x, &t);
+        const bwtintv_t* r = mm_idx_get(mi, mv.a[fast].x >> 8, &t);
         if(t > 0){
             mm320_t tmp = {mv.a[fast].x, r[0]};
             tmp.y.info = mv.a[fast].y.info;
             mv.a[slow++] = tmp;
+            assert((tmp.y.info >> 32) <= (uint32_t)tmp.y.info);
         }
     }
     mv.n = slow;
@@ -163,7 +165,7 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
         for(j = 0; j < a->mem.n; ++j){
             uint32_t left = mv.a[i].y.info >> 32;
             uint32_t right = (uint32_t)mv.a[i].y.info;
-            if(left >= a->mem.a[i].info>>32 && right <= (uint32_t)a->mem.a[i].info){
+            if(left >= a->mem.a[j].info>>32 && right <= (uint32_t)a->mem.a[j].info){
                 good = 0;
                 break;
             }
@@ -171,7 +173,7 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
         if(good){
             bwt_smem2(bwt, len, seq, start_width, &a->mem1, a->tmpv, mv.a[i].y); // 计算得到的SMEM均在a->mem1中
             for (j = 0; j < a->mem1.n; ++j) {
-                kv_push(bwtintv_t, a->mem, a->mem1.a[i]);
+                kv_push(bwtintv_t, a->mem, a->mem1.a[j]);
             }
         }
     }
@@ -357,7 +359,7 @@ mem_chain_v mem_chain(const mem_opt_t *opt, const bwt_t *bwt, const bntseq_t *bn
 			s.qbeg = p->info>>32;
 			s.score= s.len = slen;
 			if(s.rbeg > s.rbeg + s.len){
-                fprintf(stderr, "%d %d\n", s.rbeg, s.len);
+                fprintf(stderr, "%ld %d\n", s.rbeg, s.len);
                 fprintf(stderr, "x: %ld %ld %ld info:%ld %d i: %d n: %ld", p->x[0], p->x[1], p->x[2], p->info>>32, (uint32_t)p->info, i, aux->mem.n);
             }
 			rid = bns_intv2rid(bns, s.rbeg, s.rbeg + s.len);

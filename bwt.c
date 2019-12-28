@@ -51,7 +51,7 @@ void bwt_gen_cnt_table(bwt_t *bwt)
 }
 
 /**
- * k是bwt的第k行，k的取值范围[0, bwt->seq——len],该函数寻找第k行表示的prefix向前
+ * k是bwt的第k行，k的取值范围[0, bwt->seq_len],该函数寻找第k行表示的prefix向前
  * 扩展一个字符后所在的行，然后返回该行的索引。
  *
  * @param bwt
@@ -60,6 +60,7 @@ void bwt_gen_cnt_table(bwt_t *bwt)
  */
 static inline bwtint_t bwt_invPsi(const bwt_t *bwt, bwtint_t k) // compute inverse CSA
 {
+	assert(k <= bwt->seq_len && k>= 0);
 	bwtint_t x = k - (k > bwt->primary);
 	x = bwt_B0(bwt, x);
 	x = bwt->L2[x] + bwt_occ(bwt, k, x);
@@ -404,19 +405,19 @@ int bwt_smem2(const bwt_t *bwt, int len, const uint8_t *q, int min_intv, bwtintv
     bwtintv_t ik, ok[4]; // 我要存储的是kv_push的结果
     bwtintv_v a[2], *prev, *curr, *swap;
 
+    //    bwt_set_intv(bwt, q[x], ik); // the initial interval of a single base，把碱基q[x]对应的interval存储在ik中。
+//    ik.info = x + 1;
+    // 在这里ik应该已经初始化好了
+    ik = kmer_intv;
+    start = (uint32_t)(ik.info>>32);
+    end = (uint32_t)ik.info;
+
     mem->n = 0;
     if (q[end] > 3) return end + 1;
     if (min_intv < 1) min_intv = 1; // the interval size should be at least 1
     kv_init(a[0]); kv_init(a[1]);
     prev = tmpvec && tmpvec[0]? tmpvec[0] : &a[0]; // use the temporary vector if provided
     curr = tmpvec && tmpvec[1]? tmpvec[1] : &a[1];
-
-//    bwt_set_intv(bwt, q[x], ik); // the initial interval of a single base，把碱基q[x]对应的interval存储在ik中。
-//    ik.info = x + 1;
-    // 在这里ik应该已经初始化好了
-    ik = kmer_intv;
-    start = (uint32_t)(ik.info>>32);
-    end = (uint32_t)ik.info;
 
     for (i = end + 1, curr->n = 0; i < len; ++i) { // forward search
         if (ik.x[2] < max_intv) { // an interval small enough
@@ -429,7 +430,9 @@ int bwt_smem2(const bwt_t *bwt, int len, const uint8_t *q, int min_intv, bwtintv
                 kv_push(bwtintv_t, *curr, ik);
                 if (ok[c].x[2] < min_intv) break; // the interval size is too small to be extended further
             }
-            ik = ok[c]; ik.info = i + 1;
+            ik = ok[c];
+            ik.info = i + 1;
+//            + (ik.info && 0xffffffff00000000);
         } else { // an ambiguous base
             kv_push(bwtintv_t, *curr, ik);
             break; // always terminate extension at an ambiguous base; in this case, i<len always stands

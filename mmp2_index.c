@@ -94,7 +94,7 @@ const bwtintv_t *mm_idx_get(const mm_idx_t *mi, uint64_t minier, int *n)
 	idxhash_t *h = (idxhash_t*)b->h;
 	*n = 0;
 	if (h == 0) return 0;
-	k = kh_get(idx, h, minier>>mi->b<<1);
+	k = kh_get(idx, h, minier>>mi->b);
 	if (k == kh_end(h)) return 0;
 	*n = 1;
 	return &kh_val(h, k);
@@ -388,8 +388,15 @@ static void *worker_pipeline(void *shared, int step, void *in)
         step_t *s = (step_t*)in;
 		for (i = 0; i < s->n_seq; ++i) {
 			mm_bseq1_t *t = &s->seq[i];
-			if (t->l_seq > 0)
+			if (t->l_seq > 0){
 				mm_sketch(0, t->seq, t->l_seq, p->mi->w, p->mi->k, t->rid, p->mi->flag&MM_I_HPC, &s->a);
+                /*********************/
+                int l;
+                for(l=0; l<s->a.n; l++){
+                    printf("index %lx\n", s->a.a[l].x);
+                }
+                /*********************/
+			}
 			else if (mm_verbose >= 2)
 				fprintf(stderr, "[WARNING] the length database sequence '%s' is 0\n", t->name);
 			free(t->seq); free(t->name);
@@ -535,7 +542,7 @@ void mm_idx_dump(FILE *fp, const mm_idx_t *mi)
 			y = kh_val(h, k);
 			fwrite(&x, 8, 1, fp);
 			fwrite(&y, sizeof(bwtintv_t), 1, fp);
-		}
+        }
 	}
 	if (!(mi->flag & MM_I_NO_SEQ))
 		fwrite(mi->S, 4, (sum_len + 7) / 8, fp);

@@ -33,12 +33,15 @@ CMakeFiles/bwa.dir/bwamem.c.o: ../bwamem.c
 CMakeFiles/bwa.dir/bwamem.c.o: ../bwamem.h
 CMakeFiles/bwa.dir/bwamem.c.o: ../bwt.h
 CMakeFiles/bwa.dir/bwamem.c.o: ../kbtree.h
+CMakeFiles/bwa.dir/bwamem.c.o: ../khash.h
 CMakeFiles/bwa.dir/bwamem.c.o: ../ksort.h
 CMakeFiles/bwa.dir/bwamem.c.o: ../kstring.h
 CMakeFiles/bwa.dir/bwamem.c.o: ../ksw.h
 CMakeFiles/bwa.dir/bwamem.c.o: ../kvec.h
 CMakeFiles/bwa.dir/bwamem.c.o: ../malloc_wrap.h
 CMakeFiles/bwa.dir/bwamem.c.o: ../mmp2_bseq.h
+CMakeFiles/bwa.dir/bwamem.c.o: ../mmp2_kalloc.h
+CMakeFiles/bwa.dir/bwamem.c.o: ../mmp2_kvec.h
 CMakeFiles/bwa.dir/bwamem.c.o: ../mmp2_minimap.h
 CMakeFiles/bwa.dir/bwamem.c.o: ../mmp2_mmpriv.h
 CMakeFiles/bwa.dir/bwamem.c.o: ../profile.h
