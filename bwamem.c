@@ -177,7 +177,7 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
         if(good){
             bwt_smem2(bwt, len, seq, start_width, &a->mem1, a->tmpv, mv.a[i].y); // 计算得到的SMEM均在a->mem1中
             for (j = 0; j < a->mem1.n; ++j) {
-                fprintf(stderr, "mem: %d x: %ld %ld %ld info: %ld %ld\n", i, a->mem1.a[j].x[0], a->mem1.a[j].x[1], a->mem1.a[j].x[2], a->mem1.a[j].info >> 32, (uint32_t)a->mem1.a[j].info);
+                fprintf(stderr, "mem: %d x: %ld %ld %ld info: %ld %u\n", i, a->mem1.a[j].x[0], a->mem1.a[j].x[1], a->mem1.a[j].x[2], a->mem1.a[j].info >> 32, (uint32_t)a->mem1.a[j].info);
                 kv_push(bwtintv_t, a->mem, a->mem1.a[j]);
 //                fprintf(stderr, "mem: %d x: %ld %ld %ld info: %lu %u\n", i, a->mem1.a[j].x[0], a->mem1.a[j].x[1], a->mem1.a[j].x[2], a->mem1.a[j], a->mem1.a[j].info >> 32, (uint32_t)a->mem1.a[j].info);
             }
