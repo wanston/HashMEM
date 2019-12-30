@@ -160,6 +160,10 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
     mv.n = slow;
 
     for(i=0; i<mv.n; i++){
+        fprintf(stderr, "mv: %d info: %lu %u\n", i, mv.a[i].y.info >> 32, (uint32_t)mv.a[i].y.info);
+    }
+
+    for(i=0; i<mv.n; i++){
         // TODO: check if kmer is in SMEM，maybe there is better method
         int good = 1;
         for(j = 0; j < a->mem.n; ++j){
@@ -174,6 +178,8 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
             bwt_smem2(bwt, len, seq, start_width, &a->mem1, a->tmpv, mv.a[i].y); // 计算得到的SMEM均在a->mem1中
             for (j = 0; j < a->mem1.n; ++j) {
                 kv_push(bwtintv_t, a->mem, a->mem1.a[j]);
+
+                fprintf(stderr, "mem: %d x: %ld %ld %ld info: %lu %u\n", j, a->mem1.a[j].x[0], a->mem1.a[j].x[1], a->mem1.a[j].x[2], a->mem1.a[j], a->mem1.a[j].info >> 32, (uint32_t)a->mem1.a[j].info);
             }
         }
     }
@@ -340,6 +346,15 @@ mem_chain_v mem_chain(const mem_opt_t *opt, const bwt_t *bwt, const bntseq_t *bn
 		if (p->x[2] <= opt->max_occ) continue;
 		if (sb > e) l_rep += e - b, b = sb, e = se;
 		else e = e > se? e : se;
+
+		/*************************/
+		if(sb > se){
+		    int ii;
+            for (ii = 0; ii < aux->mem.n; ++ii) {
+                printf("intv: %d x: %ld %ld %ld info: %ld %d\n", i, aux->mem.a[ii].x[0], aux->mem.a[i].x[1], aux->mem.a[i].x[2], aux->mem.a[i].info >> 32, (int)aux->mem.a[i].info);
+            }
+		}
+        /*************************/
 	}
 	PROFILE_END(seed);
 
