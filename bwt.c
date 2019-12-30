@@ -412,7 +412,7 @@ int bwt_smem2(const bwt_t *bwt, int len, const uint8_t *q, int min_intv, bwtintv
     start = (uint32_t)(ik.info>>32);
     end = (uint32_t)ik.info;
 
-    fprintf(stderr, "bwt_smem2 start %u end %u\n", start, end);
+//    fprintf(stderr, "bwt_smem2 start %u end %u\n", start, end);
 
 
     mem->n = 0;
@@ -421,6 +421,34 @@ int bwt_smem2(const bwt_t *bwt, int len, const uint8_t *q, int min_intv, bwtintv
     kv_init(a[0]); kv_init(a[1]);
     prev = tmpvec && tmpvec[0]? tmpvec[0] : &a[0]; // use the temporary vector if provided
     curr = tmpvec && tmpvec[1]? tmpvec[1] : &a[1];
+
+
+//    bwt_set_intv(bwt, q[start], ik); // the initial interval of a single base，把碱基q[x]对应的interval存储在ik中。
+//    ik.info = 1 + start;
+//    for (i = start + 1, curr->n = 0; i < len; ++i) { // forward search
+//        if (ik.x[2] < max_intv) { // an interval small enough
+//            break;
+//        } else if (q[i] < 4) { // an A/C/G/T base
+//            c = 3 - q[i]; // complement of q[i], 因为是forward extention，所以用互补碱基
+//            bwt_extend(bwt, &ik, ok, 0);
+//            bwtintv_t t = ik;
+//            fprintf(stderr, "bwt_smem2 curr: x: %ld %ld %ld info: %ld %u\n", t.x[0], t.x[1], t.x[2], t.info>>32, (uint32_t)t.info);
+//            if (ok[c].x[2] != ik.x[2]) { // change of the interval size
+//                if (ok[c].x[2] < min_intv){
+//                    break; // the interval size is too small to be extended further
+//                }
+//            }
+//            ik = ok[c];
+//            ik.info = i+1;
+//        } else { // an ambiguous base
+//            break; // always terminate extension at an ambiguous base; in this case, i<len always stands
+//        }
+//    }
+//    ik = kmer_intv;
+//    bwtintv_t t = ik;
+//    fprintf(stderr, "bwt_smem2 kmer_intv: x: %ld %ld %ld info: %ld %u\n", t.x[0], t.x[1], t.x[2], t.info>>32, (uint32_t)t.info);
+
+
 
     for (i = end + 1, curr->n = 0; i < len; ++i) { // forward search
         if (ik.x[2] < max_intv) { // an interval small enough
@@ -446,11 +474,11 @@ int bwt_smem2(const bwt_t *bwt, int len, const uint8_t *q, int min_intv, bwtintv
     ret = curr->a[0].info; // this will be the returned value
     swap = curr; curr = prev; prev = swap;
 
-    for(i=0; i<prev->n; ++i){
-        bwtintv_t t = prev->a[i];
-        fprintf(stderr, "bwt_smem2 x: %ld %ld %ld info: %ld %u\n", t.x[0], t.x[1], t.x[2], t.info>>32, (uint32_t)t.info);
-    }
-    fprintf(stderr, "\n");
+//    for(i=0; i<prev->n; ++i){
+//        bwtintv_t t = prev->a[i];
+//        fprintf(stderr, "bwt_smem2 x: %ld %ld %ld info: %ld %u\n", t.x[0], t.x[1], t.x[2], t.info>>32, (uint32_t)t.info);
+//    }
+//    fprintf(stderr, "\n");
 
     for (i = start - 1; i >= -1; --i) { // backward search for MEMs
         c = i < 0? -1 : q[i] < 4? q[i] : -1; // c==-1 if i<0 or q[i] is an ambiguous base
@@ -462,32 +490,27 @@ int bwt_smem2(const bwt_t *bwt, int len, const uint8_t *q, int min_intv, bwtintv
             if (c < 0 || ik.x[2] < max_intv || ok[c].x[2] < min_intv) { // keep the hit if reaching the beginning or an ambiguous base or the intv is small enough
                 if (curr->n == 0) { // test curr->n>0 to make sure there are no longer matches
                     if (mem->n == 0 || i + 1 < mem->a[mem->n-1].info>>32) { // skip contained matches
-                        ik = *p; ik.info |= (uint64_t)(i + 1)<<32;
+                        ik = *p;
+                        ik.info = ((uint64_t)(i + 1)<<32) + (uint32_t)ik.info;
                         kv_push(bwtintv_t, *mem, ik);
                     }
                 } // otherwise the match is contained in another longer match
             } else if (curr->n == 0 || ok[c].x[2] != curr->a[curr->n-1].x[2]) {
                 ok[c].info = p->info;
-                ok[c].info |= (uint64_t)(i + 1)<<32;
+//                ok[c].info |= (uint64_t)(i + 1)<<32;
                 kv_push(bwtintv_t, *curr, ok[c]);
             }
         }
         if (curr->n == 0) break;
 
-        int ij;
-        for(ij=0; ij<curr->n; ++ij){
-            bwtintv_t t = curr->a[ij];
-            fprintf(stderr, "bwt_smem2 curr x: %ld %ld %ld info: %ld %u\n", t.x[0], t.x[1], t.x[2], t.info>>32, (uint32_t)t.info);
-        }
-        fprintf(stderr, "\n");
-
-        swap = curr; curr = prev; prev = swap;
-
-//        for(ij=0; ij<prev->n; ++ij){
-//            bwtintv_t t = prev->a[ij];
-//            fprintf(stderr, "bwt_smem2 prev x: %ld %ld %ld info: %ld %u\n", t.x[0], t.x[1], t.x[2], t.info>>32, (uint32_t)t.info);
+//        int ij;
+//        for(ij=0; ij<curr->n; ++ij){
+//            bwtintv_t t = curr->a[ij];
+//            fprintf(stderr, "bwt_smem2 curr x: %ld %ld %ld info: %ld %u\n", t.x[0], t.x[1], t.x[2], t.info>>32, (uint32_t)t.info);
 //        }
 //        fprintf(stderr, "\n");
+
+        swap = curr; curr = prev; prev = swap;
     }
     bwt_reverse_intvs(mem); // s.t. sorted by the start coordinate
 

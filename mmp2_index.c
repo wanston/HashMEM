@@ -267,8 +267,11 @@ static void worker_post(void *g, long i, int tid)
 
 			uint8_t kmer_span = (uint8_t)p->x;
 			int good;
-            bwtintv_t intv = get_kmer_interval(p->y.x[0], kmer_span, bwt, &good);
-            if(good) kh_val(h, itr) = intv; // 低kmer_span*2位存储的是kmer。其中高位表示左边的碱基，低位表示右边的碱基。
+            bwtintv_t intv = get_kmer_interval(p->y.x[0], kmer_span, bwt, &good);// 低kmer_span*2位存储的是kmer。其中高位表示左边的碱基，低位表示右边的碱基。
+            if(good) {
+                intv.info = p->y.x[1]; // 这里的info存储正反链信息
+                kh_val(h, itr) = intv; // TODO：建表和查询的数据结构需要再精简一下。
+            }
 //            printf("%lx\n", p->x>>8>>mi->b);
             // TODO: 这里还得再确认一下，得到的interval对应的前缀字符串，需要确实匹配到原字符串上。
 		}
@@ -391,10 +394,10 @@ static void *worker_pipeline(void *shared, int step, void *in)
 			if (t->l_seq > 0){
 				mm_sketch(0, t->seq, t->l_seq, p->mi->w, p->mi->k, t->rid, p->mi->flag&MM_I_HPC, &s->a);
                 /*********************/
-                int l;
-                for(l=0; l<s->a.n; l++){
-                    printf("index %lx\n", s->a.a[l].x);
-                }
+//                int l;
+//                for(l=0; l<s->a.n; l++){
+//                    printf("index %lx\n", s->a.a[l].x);
+//                }
                 /*********************/
 			}
 			else if (mm_verbose >= 2)

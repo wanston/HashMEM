@@ -115,7 +115,8 @@ void mm_sketch1(void *km, const uint8_t *seq, int len, int w, int k, uint32_t ri
                 info.y.info = i-kmer_span+1;
                 info.y.info <<= 32;
                 info.y.info += i;
-                info.y.x[0] = kmer[0];
+                info.y.x[0] = kmer[z];
+                info.y.x[1] = z;
 			}
 		} else l = 0, tq.count = tq.front = 0, kmer_span = 0;
 		buf[buf_pos] = info; // need to do this here as appropriate buf_pos and buf[buf_pos] are needed below

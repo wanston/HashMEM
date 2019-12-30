@@ -153,6 +153,11 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
         if(t > 0){
             mm320_t tmp = {mv.a[fast].x, r[0]};
             tmp.y.info = mv.a[fast].y.info;
+            if(mv.a[fast].y.x[1] == 1){
+                uint64_t t = tmp.y.x[0];
+                tmp.y.x[0] = tmp.y.x[1];
+                tmp.y.x[1] = t;
+            }
             mv.a[slow++] = tmp;
             assert((tmp.y.info >> 32) <= (uint32_t)tmp.y.info);
         }
@@ -357,6 +362,7 @@ mem_chain_v mem_chain(const mem_opt_t *opt, const bwt_t *bwt, const bntseq_t *bn
     for (ii = 0; ii < aux->mem.n; ++ii) {
         fprintf(stderr, "chk: %d x: %ld %ld %ld info: %ld %d\n", ii, aux->mem.a[ii].x[0], aux->mem.a[ii].x[1], aux->mem.a[ii].x[2], aux->mem.a[ii].info >> 32, (int)aux->mem.a[ii].info);
     }
+    fprintf(stderr, "\n");
     /*************************/
 
 	PROFILE_END(seed);
