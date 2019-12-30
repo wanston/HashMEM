@@ -160,7 +160,7 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
     mv.n = slow;
 
     for(i=0; i<mv.n; i++){
-        fprintf(stderr, "mv: %d info: %lu %u\n", i, mv.a[i].y.info >> 32, (uint32_t)mv.a[i].y.info);
+        fprintf(stderr, "mv: %d  x: %ld %ld %ld info: %lu %u\n", i, mv.a[i].y.x[0], mv.a[i].y.x[1], mv.a[i].y.x[2], mv.a[i].y.info >> 32, (uint32_t)mv.a[i].y.info);
     }
 
     for(i=0; i<mv.n; i++){
@@ -351,7 +351,7 @@ mem_chain_v mem_chain(const mem_opt_t *opt, const bwt_t *bwt, const bntseq_t *bn
 		if(sb > se){
 		    int ii;
             for (ii = 0; ii < aux->mem.n; ++ii) {
-                printf("intv: %d x: %ld %ld %ld info: %ld %d\n", i, aux->mem.a[ii].x[0], aux->mem.a[i].x[1], aux->mem.a[i].x[2], aux->mem.a[i].info >> 32, (int)aux->mem.a[i].info);
+                fprintf(stderr, "intv: %d x: %ld %ld %ld info: %ld %d\n", i, aux->mem.a[ii].x[0], aux->mem.a[i].x[1], aux->mem.a[i].x[2], aux->mem.a[i].info >> 32, (int)aux->mem.a[i].info);
             }
 		}
         /*************************/
