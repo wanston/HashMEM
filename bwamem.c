@@ -214,7 +214,7 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
 					bwtintv_t m;
 					x = bwt_seed_strategy1(bwt, len, seq, x, opt->min_seed_len, opt->max_mem_intv, &m);
 					if (m.x[2] > 0) {
-                        fprintf(stderr, "mem pass3:  x: %ld %ld %ld info: %ld %u\n", a->mem1.a[j].x[0], a->mem1.a[j].x[1], a->mem1.a[j].x[2], a->mem1.a[j].info >> 32, (uint32_t)a->mem1.a[j].info);
+                        fprintf(stderr, "mem pass3:  x: %ld %ld %ld info: %ld %u\n", m.x[0], m.x[1], m.x[2], m.info >> 32, (uint32_t)m.info);
                         kv_push(bwtintv_t, a->mem, m);
 					}
 				} else { // for now, we never come to this block which is slower
