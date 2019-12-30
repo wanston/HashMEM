@@ -177,7 +177,7 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
         if(good){
             bwt_smem2(bwt, len, seq, start_width, &a->mem1, a->tmpv, mv.a[i].y); // 计算得到的SMEM均在a->mem1中
             for (j = 0; j < a->mem1.n; ++j) {
-                fprintf(stderr, "mem: %d x: %ld %ld %ld info: %ld %u\n", i, a->mem1.a[j].x[0], a->mem1.a[j].x[1], a->mem1.a[j].x[2], a->mem1.a[j].info >> 32, (uint32_t)a->mem1.a[j].info);
+                fprintf(stderr, "mem pass1: %d x: %ld %ld %ld info: %ld %u\n", i, a->mem1.a[j].x[0], a->mem1.a[j].x[1], a->mem1.a[j].x[2], a->mem1.a[j].info >> 32, (uint32_t)a->mem1.a[j].info);
                 kv_push(bwtintv_t, a->mem, a->mem1.a[j]);
 //                fprintf(stderr, "mem: %d x: %ld %ld %ld info: %lu %u\n", i, a->mem1.a[j].x[0], a->mem1.a[j].x[1], a->mem1.a[j].x[2], a->mem1.a[j], a->mem1.a[j].info >> 32, (uint32_t)a->mem1.a[j].info);
             }
@@ -197,7 +197,8 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
 
         for (i = 0; i < a->mem1.n; ++i){
 			if ((uint32_t)a->mem1.a[i].info - (a->mem1.a[i].info>>32) >= opt->min_seed_len){
-				kv_push(bwtintv_t, a->mem, a->mem1.a[i]);
+                fprintf(stderr, "mem pass2: %d x: %ld %ld %ld info: %ld %u\n", i, a->mem1.a[i].x[0], a->mem1.a[i].x[1], a->mem1.a[i].x[2], a->mem1.a[i].info >> 32, (uint32_t)a->mem1.a[i].info);
+                kv_push(bwtintv_t, a->mem, a->mem1.a[i]);
             }
         }
     }
@@ -212,7 +213,10 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
 				if (1) {
 					bwtintv_t m;
 					x = bwt_seed_strategy1(bwt, len, seq, x, opt->min_seed_len, opt->max_mem_intv, &m);
-					if (m.x[2] > 0) kv_push(bwtintv_t, a->mem, m);
+					if (m.x[2] > 0) {
+                        fprintf(stderr, "mem pass3:  x: %ld %ld %ld info: %ld %u\n", a->mem1.a[j].x[0], a->mem1.a[j].x[1], a->mem1.a[j].x[2], a->mem1.a[j].info >> 32, (uint32_t)a->mem1.a[j].info);
+                        kv_push(bwtintv_t, a->mem, m);
+					}
 				} else { // for now, we never come to this block which is slower
 					x = bwt_smem1a(bwt, len, seq, x, start_width, opt->max_mem_intv, &a->mem1, a->tmpv);
 					for (i = 0; i < a->mem1.n; ++i)
