@@ -468,25 +468,26 @@ int bwt_smem2(const bwt_t *bwt, int len, const uint8_t *q, int min_intv, bwtintv
                 } // otherwise the match is contained in another longer match
             } else if (curr->n == 0 || ok[c].x[2] != curr->a[curr->n-1].x[2]) {
                 ok[c].info = p->info;
+                ok[c].info |= (uint64_t)(i + 1)<<32;
                 kv_push(bwtintv_t, *curr, ok[c]);
             }
         }
         if (curr->n == 0) break;
-        swap = curr; curr = prev; prev = swap;
 
         int ij;
-        for(ij=0; ij<prev->n; ++ij){
-            bwtintv_t t = prev->a[ij];
-            fprintf(stderr, "bwt_smem2 prev x: %ld %ld %ld info: %ld %u\n", t.x[0], t.x[1], t.x[2], t.info>>32, (uint32_t)t.info);
-        }
-        fprintf(stderr, "\n");
-
         for(ij=0; ij<curr->n; ++ij){
             bwtintv_t t = curr->a[ij];
             fprintf(stderr, "bwt_smem2 curr x: %ld %ld %ld info: %ld %u\n", t.x[0], t.x[1], t.x[2], t.info>>32, (uint32_t)t.info);
         }
-
         fprintf(stderr, "\n");
+
+        swap = curr; curr = prev; prev = swap;
+
+//        for(ij=0; ij<prev->n; ++ij){
+//            bwtintv_t t = prev->a[ij];
+//            fprintf(stderr, "bwt_smem2 prev x: %ld %ld %ld info: %ld %u\n", t.x[0], t.x[1], t.x[2], t.info>>32, (uint32_t)t.info);
+//        }
+//        fprintf(stderr, "\n");
     }
     bwt_reverse_intvs(mem); // s.t. sorted by the start coordinate
 
