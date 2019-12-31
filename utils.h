@@ -108,7 +108,8 @@ static inline uint64_t hash_64(uint64_t key)
 	return key;
 }
 
-#define LOG(s, ...) fprintf((s), ##__VA_ARGS__)
+#define LOG(s, ...)
+//#define LOG(s, ...) fprintf((s), ##__VA_ARGS__)
 #define swap(a, b) {typeof(a) t = (a); \
                     t = a; \
                     a = b; \

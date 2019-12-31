@@ -141,17 +141,32 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
 
 	// first pass: find all SMEMs
 	PROFILE_START(seed_pass1);
-	/***********New PASS 1****************/
-//	int w = 11;
-//	int k = 21;
-	mm320_v mv = {0,0,0};
+//	int w = 11; // TODO: 生成索引时，避免多次生成FM-index索引
+//	int k = 21; // TODO: w k的参数传入
+	mm320_v mv = {0,0,0}; // TODO: 减少申请内存的数量
     mm_sketch1(NULL, seq, len, 11, 21, 0, 0, &mv);
-    for(i=0; i<mv.n; i++){
-        // 检查当前kmer不在已有的SMEM中。
+
+    size_t lo, hi;
+    for(lo=0, hi=0; hi<mv.n; hi++){
+        bwtintv_t kmer_intv = mm_idx_get(mi, mv.a[hi].x >> 8);
+
+        LOG(stderr, "kmer: %d x: %ld %ld %ld info: %ld %u\n", hi, kmer_intv.x[0], kmer_intv.x[1], kmer_intv.x[2],mv.a[hi].y.info >> 32, (uint32_t)mv.a[hi].y.info);
+
+        if(kmer_intv.info == 0) continue;
+
+        kmer_intv.info = mv.a[hi].y.info;
+        if(mv.a[hi].y.x[1] == 1){ // 如果kmer是经过反转的
+            swap(kmer_intv.x[0], kmer_intv.x[1]);
+        }
+        assert((kmer_intv.info >> 32) <= (uint32_t)kmer_intv.info);
+
+        mv.a[lo++].y = kmer_intv;
+
+        // 检查当前kmer不在已有的SMEM中。TODO: 更新检查的策略
         int good = 1;
         for(j = 0; j < a->mem.n; ++j){
-            uint32_t left = mv.a[i].y.info >> 32;
-            uint32_t right = (uint32_t)mv.a[i].y.info;
+            uint32_t left = mv.a[hi].y.info >> 32;
+            uint32_t right = (uint32_t)mv.a[hi].y.info;
             if(left >= a->mem.a[j].info>>32 && right <= (uint32_t)a->mem.a[j].info){
                 good = 0;
                 break;
@@ -162,45 +177,42 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
             continue;
         }
 
-        // kmer不在已有SMEM中时，查表得到interval，再计算SMEM
-        bwtintv_t kmer_intv = mm_idx_get(mi, mv.a[i].x >> 8);
-        if(kmer_intv.info == 0) continue;
-
-        kmer_intv.info = mv.a[i].y.info;
-        if(mv.a[i].y.x[1] == 1){ // 如果kmer是经过反转的
-            swap(kmer_intv.x[0], kmer_intv.x[1]);
-        }
-        assert((kmer_intv.info >> 32) <= (uint32_t)kmer_intv.info);
-
+        // TODO: 翻转a->mem中的东西
         bwt_smem2(bwt, len, seq, start_width, &a->mem, a->tmpv, kmer_intv); // 计算得到的SMEM追加在a->mem中
-//        for (j = 0; j < a->mem1.n; ++j) {
-//                fprintf(stderr, "mem pass1: %d x: %ld %ld %ld info: %ld %u\n", i, a->mem1.a[j].x[0], a->mem1.a[j].x[1], a->mem1.a[j].x[2], a->mem1.a[j].info >> 32, (uint32_t)a->mem1.a[j].info);
-//            kv_push(bwtintv_t, a->mem, a->mem1.a[j]);
-//                fprintf(stderr, "mem: %d x: %ld %ld %ld info: %lu %u\n", i, a->mem1.a[j].x[0], a->mem1.a[j].x[1], a->mem1.a[j].x[2], a->mem1.a[j], a->mem1.a[j].info >> 32, (uint32_t)a->mem1.a[j].info);
-//        }
     }
-
-    /********************/
-//    for(i=0; i<mv.n; i++){
-//        LOG(stderr, "hashtable intv: %d  x: %ld %ld %ld info: %lu %u\n", i, mv.a[i].y.x[0], mv.a[i].y.x[1], mv.a[i].y.x[2], mv.a[i].y.info >> 32, (uint32_t)mv.a[i].y.info);
-//    }
-    /********************/
+    mv.n = lo;
     kv_destroy(mv);
-	PROFILE_END(seed_pass1);
+    LOG(stderr, "\n");
+    PROFILE_END(seed_pass1);
 
 	// second pass: find MEMs inside a long SMEM
+    // 如果所有的kmer的interval都是1的话，就不再计算这些pass2。
 	PROFILE_START(seed_pass2);
 	old_n = a->mem.n;
-	for (k = 0; k < old_n; ++k) {
+	for (k = 0; k < old_n; ++k) { //
 		bwtintv_t *p = &a->mem.a[k];
 		int start = p->info>>32, end = (int32_t)p->info;
 		if (end - start < split_len || p->x[2] > opt->split_width) continue;
-		bwt_smem1(bwt, len, seq, (start + end)>>1, p->x[2]+1, &a->mem1, a->tmpv);
 
-        for (i = 0; i < a->mem1.n; ++i){
-			if ((uint32_t)a->mem1.a[i].info - (a->mem1.a[i].info>>32) >= opt->min_seed_len){
+		uint32_t kmer_count = 0; // 统计interval大于1的kmer的数量
+        for(i = 0; i<mv.n; i++){
+            bwtintv_t *p = &mv.a[i].y;
+            uint64_t kmer_interval = p->x[2];
+            uint32_t kmer_start = (uint32_t)(p->info >> 32);
+            uint32_t kmer_end = (uint32_t)p->info;
+            if(start <= kmer_start && kmer_end <= end && kmer_interval > 1){
+                ++kmer_count;
+            }
+        }
+
+        if(kmer_count >= 2){
+            bwt_smem1(bwt, len, seq, (start + end)>>1, p->x[2]+1, &a->mem1, a->tmpv);
+
+            for (i = 0; i < a->mem1.n; ++i){
+                if ((uint32_t)a->mem1.a[i].info - (a->mem1.a[i].info>>32) >= opt->min_seed_len){
 //                fprintf(stderr, "mem pass2: %d x: %ld %ld %ld info: %ld %u\n", i, a->mem1.a[i].x[0], a->mem1.a[i].x[1], a->mem1.a[i].x[2], a->mem1.a[i].info >> 32, (uint32_t)a->mem1.a[i].info);
-                kv_push(bwtintv_t, a->mem, a->mem1.a[i]);
+                    kv_push(bwtintv_t, a->mem, a->mem1.a[i]);
+                }
             }
         }
     }
@@ -216,7 +228,6 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
 					bwtintv_t m;
 					x = bwt_seed_strategy1(bwt, len, seq, x, opt->min_seed_len, opt->max_mem_intv, &m);
 					if (m.x[2] > 0) {
-//                        fprintf(stderr, "mem pass3:  x: %ld %ld %ld info: %ld %u\n", m.x[0], m.x[1], m.x[2], m.info >> 32, (uint32_t)m.info);
                         kv_push(bwtintv_t, a->mem, m);
 					}
 				} else { // for now, we never come to this block which is slower
