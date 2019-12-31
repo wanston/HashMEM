@@ -415,7 +415,7 @@ int bwt_smem2(const bwt_t *bwt, int len, const uint8_t *q, int min_intv, bwtintv
 //    fprintf(stderr, "bwt_smem2 start %u end %u\n", start, end);
 
 
-    mem->n = 0;
+//    mem->n = 0;
     if (q[end] > 3) return end + 1;
     if (min_intv < 1) min_intv = 1; // the interval size should be at least 1
     kv_init(a[0]); kv_init(a[1]);
@@ -512,7 +512,7 @@ int bwt_smem2(const bwt_t *bwt, int len, const uint8_t *q, int min_intv, bwtintv
 
         swap = curr; curr = prev; prev = swap;
     }
-    bwt_reverse_intvs(mem); // s.t. sorted by the start coordinate
+//    bwt_reverse_intvs(mem); // s.t. sorted by the start coordinate
 
     if (tmpvec == 0 || tmpvec[0] == 0) free(a[0].a);
     if (tmpvec == 0 || tmpvec[1] == 0) free(a[1].a);

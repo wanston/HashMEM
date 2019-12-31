@@ -145,33 +145,9 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
 //	int w = 11;
 //	int k = 21;
 	mm320_v mv = {0,0,0};
-	size_t slow, fast;
     mm_sketch1(NULL, seq, len, 11, 21, 0, 0, &mv);
-    for(slow=0, fast=0; fast<mv.n; fast++){
-        int t;
-        const bwtintv_t* r = mm_idx_get(mi, mv.a[fast].x >> 8, &t);
-        if(t > 0){
-            mm320_t tmp = {mv.a[fast].x, r[0]};
-            tmp.y.info = mv.a[fast].y.info;
-            if(mv.a[fast].y.x[1] == 1){
-                uint64_t t = tmp.y.x[0];
-                tmp.y.x[0] = tmp.y.x[1];
-                tmp.y.x[1] = t;
-            }
-            mv.a[slow++] = tmp;
-            assert((tmp.y.info >> 32) <= (uint32_t)tmp.y.info);
-        }
-    }
-    mv.n = slow;
-
-    /********************/
-//    for(i=0; i<mv.n; i++){
-//        fprintf(stderr, "mv: %d  x: %ld %ld %ld info: %lu %u\n", i, mv.a[i].y.x[0], mv.a[i].y.x[1], mv.a[i].y.x[2], mv.a[i].y.info >> 32, (uint32_t)mv.a[i].y.info);
-//    }
-    /********************/
-
     for(i=0; i<mv.n; i++){
-        // TODO: check if kmer is in SMEM，maybe there is better method
+        // 检查当前kmer不在已有的SMEM中。
         int good = 1;
         for(j = 0; j < a->mem.n; ++j){
             uint32_t left = mv.a[i].y.info >> 32;
@@ -181,15 +157,34 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
                 break;
             }
         }
-        if(good){
-            bwt_smem2(bwt, len, seq, start_width, &a->mem1, a->tmpv, mv.a[i].y); // 计算得到的SMEM均在a->mem1中
-            for (j = 0; j < a->mem1.n; ++j) {
-//                fprintf(stderr, "mem pass1: %d x: %ld %ld %ld info: %ld %u\n", i, a->mem1.a[j].x[0], a->mem1.a[j].x[1], a->mem1.a[j].x[2], a->mem1.a[j].info >> 32, (uint32_t)a->mem1.a[j].info);
-                kv_push(bwtintv_t, a->mem, a->mem1.a[j]);
-//                fprintf(stderr, "mem: %d x: %ld %ld %ld info: %lu %u\n", i, a->mem1.a[j].x[0], a->mem1.a[j].x[1], a->mem1.a[j].x[2], a->mem1.a[j], a->mem1.a[j].info >> 32, (uint32_t)a->mem1.a[j].info);
-            }
+
+        if(!good){
+            continue;
         }
+
+        // kmer不在已有SMEM中时，查表得到interval，再计算SMEM
+        bwtintv_t kmer_intv = mm_idx_get(mi, mv.a[i].x >> 8);
+        if(kmer_intv.info == 0) continue;
+
+        kmer_intv.info = mv.a[i].y.info;
+        if(mv.a[i].y.x[1] == 1){ // 如果kmer是经过反转的
+            swap(kmer_intv.x[0], kmer_intv.x[1]);
+        }
+        assert((kmer_intv.info >> 32) <= (uint32_t)kmer_intv.info);
+
+        bwt_smem2(bwt, len, seq, start_width, &a->mem, a->tmpv, kmer_intv); // 计算得到的SMEM追加在a->mem中
+//        for (j = 0; j < a->mem1.n; ++j) {
+//                fprintf(stderr, "mem pass1: %d x: %ld %ld %ld info: %ld %u\n", i, a->mem1.a[j].x[0], a->mem1.a[j].x[1], a->mem1.a[j].x[2], a->mem1.a[j].info >> 32, (uint32_t)a->mem1.a[j].info);
+//            kv_push(bwtintv_t, a->mem, a->mem1.a[j]);
+//                fprintf(stderr, "mem: %d x: %ld %ld %ld info: %lu %u\n", i, a->mem1.a[j].x[0], a->mem1.a[j].x[1], a->mem1.a[j].x[2], a->mem1.a[j], a->mem1.a[j].info >> 32, (uint32_t)a->mem1.a[j].info);
+//        }
     }
+
+    /********************/
+//    for(i=0; i<mv.n; i++){
+//        LOG(stderr, "hashtable intv: %d  x: %ld %ld %ld info: %lu %u\n", i, mv.a[i].y.x[0], mv.a[i].y.x[1], mv.a[i].y.x[2], mv.a[i].y.info >> 32, (uint32_t)mv.a[i].y.info);
+//    }
+    /********************/
     kv_destroy(mv);
 	PROFILE_END(seed_pass1);
 
