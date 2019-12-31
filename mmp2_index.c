@@ -272,8 +272,6 @@ static void worker_post(void *g, long i, int tid)
                 intv.info = p->y.x[1]; // 这里的info存储正反链信息
                 kh_val(h, itr) = intv; // TODO：建表和查询的数据结构需要再精简一下。
             }
-//            printf("%lx\n", p->x>>8>>mi->b);
-            // TODO: 这里还得再确认一下，得到的interval对应的前缀字符串，需要确实匹配到原字符串上。
 		}
 	}
 	b->h = h;
@@ -393,12 +391,6 @@ static void *worker_pipeline(void *shared, int step, void *in)
 			mm_bseq1_t *t = &s->seq[i];
 			if (t->l_seq > 0){
 				mm_sketch(0, t->seq, t->l_seq, p->mi->w, p->mi->k, t->rid, p->mi->flag&MM_I_HPC, &s->a);
-                /*********************/
-//                int l;
-//                for(l=0; l<s->a.n; l++){
-//                    printf("index %lx\n", s->a.a[l].x);
-//                }
-                /*********************/
 			}
 			else if (mm_verbose >= 2)
 				fprintf(stderr, "[WARNING] the length database sequence '%s' is 0\n", t->name);

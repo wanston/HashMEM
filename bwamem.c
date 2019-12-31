@@ -164,9 +164,11 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
     }
     mv.n = slow;
 
-    for(i=0; i<mv.n; i++){
-        fprintf(stderr, "mv: %d  x: %ld %ld %ld info: %lu %u\n", i, mv.a[i].y.x[0], mv.a[i].y.x[1], mv.a[i].y.x[2], mv.a[i].y.info >> 32, (uint32_t)mv.a[i].y.info);
-    }
+    /********************/
+//    for(i=0; i<mv.n; i++){
+//        fprintf(stderr, "mv: %d  x: %ld %ld %ld info: %lu %u\n", i, mv.a[i].y.x[0], mv.a[i].y.x[1], mv.a[i].y.x[2], mv.a[i].y.info >> 32, (uint32_t)mv.a[i].y.info);
+//    }
+    /********************/
 
     for(i=0; i<mv.n; i++){
         // TODO: check if kmer is in SMEM，maybe there is better method
@@ -182,7 +184,7 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
         if(good){
             bwt_smem2(bwt, len, seq, start_width, &a->mem1, a->tmpv, mv.a[i].y); // 计算得到的SMEM均在a->mem1中
             for (j = 0; j < a->mem1.n; ++j) {
-                fprintf(stderr, "mem pass1: %d x: %ld %ld %ld info: %ld %u\n", i, a->mem1.a[j].x[0], a->mem1.a[j].x[1], a->mem1.a[j].x[2], a->mem1.a[j].info >> 32, (uint32_t)a->mem1.a[j].info);
+//                fprintf(stderr, "mem pass1: %d x: %ld %ld %ld info: %ld %u\n", i, a->mem1.a[j].x[0], a->mem1.a[j].x[1], a->mem1.a[j].x[2], a->mem1.a[j].info >> 32, (uint32_t)a->mem1.a[j].info);
                 kv_push(bwtintv_t, a->mem, a->mem1.a[j]);
 //                fprintf(stderr, "mem: %d x: %ld %ld %ld info: %lu %u\n", i, a->mem1.a[j].x[0], a->mem1.a[j].x[1], a->mem1.a[j].x[2], a->mem1.a[j], a->mem1.a[j].info >> 32, (uint32_t)a->mem1.a[j].info);
             }
@@ -202,7 +204,7 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
 
         for (i = 0; i < a->mem1.n; ++i){
 			if ((uint32_t)a->mem1.a[i].info - (a->mem1.a[i].info>>32) >= opt->min_seed_len){
-                fprintf(stderr, "mem pass2: %d x: %ld %ld %ld info: %ld %u\n", i, a->mem1.a[i].x[0], a->mem1.a[i].x[1], a->mem1.a[i].x[2], a->mem1.a[i].info >> 32, (uint32_t)a->mem1.a[i].info);
+//                fprintf(stderr, "mem pass2: %d x: %ld %ld %ld info: %ld %u\n", i, a->mem1.a[i].x[0], a->mem1.a[i].x[1], a->mem1.a[i].x[2], a->mem1.a[i].info >> 32, (uint32_t)a->mem1.a[i].info);
                 kv_push(bwtintv_t, a->mem, a->mem1.a[i]);
             }
         }
@@ -219,7 +221,7 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
 					bwtintv_t m;
 					x = bwt_seed_strategy1(bwt, len, seq, x, opt->min_seed_len, opt->max_mem_intv, &m);
 					if (m.x[2] > 0) {
-                        fprintf(stderr, "mem pass3:  x: %ld %ld %ld info: %ld %u\n", m.x[0], m.x[1], m.x[2], m.info >> 32, (uint32_t)m.info);
+//                        fprintf(stderr, "mem pass3:  x: %ld %ld %ld info: %ld %u\n", m.x[0], m.x[1], m.x[2], m.info >> 32, (uint32_t)m.info);
                         kv_push(bwtintv_t, a->mem, m);
 					}
 				} else { // for now, we never come to this block which is slower
@@ -358,11 +360,11 @@ mem_chain_v mem_chain(const mem_opt_t *opt, const bwt_t *bwt, const bntseq_t *bn
 	}
 
     /*************************/
-    int ii=i;
-    for (ii = 0; ii < aux->mem.n; ++ii) {
-        fprintf(stderr, "chk: %d x: %ld %ld %ld info: %ld %d\n", ii, aux->mem.a[ii].x[0], aux->mem.a[ii].x[1], aux->mem.a[ii].x[2], aux->mem.a[ii].info >> 32, (int)aux->mem.a[ii].info);
-    }
-    fprintf(stderr, "\n");
+//    int ii=i;
+//    for (ii = 0; ii < aux->mem.n; ++ii) {
+//        fprintf(stderr, "chk: %d x: %ld %ld %ld info: %ld %d\n", ii, aux->mem.a[ii].x[0], aux->mem.a[ii].x[1], aux->mem.a[ii].x[2], aux->mem.a[ii].info >> 32, (int)aux->mem.a[ii].info);
+//    }
+//    fprintf(stderr, "\n");
     /*************************/
 
 	PROFILE_END(seed);
@@ -384,10 +386,10 @@ mem_chain_v mem_chain(const mem_opt_t *opt, const bwt_t *bwt, const bntseq_t *bn
 			s.score= s.len = slen;
 
             /*************************/
-			if(s.rbeg > s.rbeg + s.len){
-                fprintf(stderr, "%ld %d\n", s.rbeg, s.len);
-                fprintf(stderr, "x: %ld %ld %ld info:%ld %d i: %d n: %ld\n", p->x[0], p->x[1], p->x[2], p->info>>32, (uint32_t)p->info, i, aux->mem.n);
-            }
+//			if(s.rbeg > s.rbeg + s.len){
+//                fprintf(stderr, "%ld %d\n", s.rbeg, s.len);
+//                fprintf(stderr, "x: %ld %ld %ld info:%ld %d i: %d n: %ld\n", p->x[0], p->x[1], p->x[2], p->info>>32, (uint32_t)p->info, i, aux->mem.n);
+//            }
             /*************************/
 
 			rid = bns_intv2rid(bns, s.rbeg, s.rbeg + s.len);

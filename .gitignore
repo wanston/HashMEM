@@ -1,4 +1,4 @@
-./cmake*
+./cmake-build-debug
 ./data
 CMakeLists.txt
 .idea
