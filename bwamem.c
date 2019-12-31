@@ -188,6 +188,12 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
 	// second pass: find MEMs inside a long SMEM
     // 如果所有的kmer的interval都是1的话，就不再计算这些pass2。
 	PROFILE_START(seed_pass2);
+    for(i = 0; i<mv.n; i++){
+        bwtintv_t *p = &mv.a[i].y;
+        kv_push(bwtintv_t, a->mem, *p);
+    }
+
+
 //	old_n = a->mem.n;
 //	for (k = 0; k < old_n; ++k) { //
 //		bwtintv_t *p = &a->mem.a[k];
