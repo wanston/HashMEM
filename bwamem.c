@@ -191,7 +191,7 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
     for(i = 0; i<mv.n; i++){
         bwtintv_t *p = &mv.a[i].y;
         kv_push(bwtintv_t, a->mem, *p);
-        LOG(stderr, "pass 2: x: %ld %ld %ld info: %ld %d\n", p->x[0], p->x[1], p->x[2], p->info>>32, (uint32_t)p->info);
+        LOG(stderr, "pass 2: x: %ld %ld %ld info: %u %u\n", p->x[0], p->x[1], p->x[2], (uint32_t)(p->info>>32), (uint32_t)p->info);
     }
     LOG(stderr, "\n");
 
