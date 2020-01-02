@@ -188,42 +188,42 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
 	// second pass: find MEMs inside a long SMEM
     // 如果所有的kmer的interval都是1的话，就不再计算这些pass2。
 	PROFILE_START(seed_pass2);
-    for(i = 0; i<mv.n; i++){
-        bwtintv_t *p = &mv.a[i].y;
-        kv_push(bwtintv_t, a->mem, *p);
-        LOG(stderr, "pass 2: x: %ld %ld %ld info: %u %u\n", p->x[0], p->x[1], p->x[2], (uint32_t)(p->info>>32), (uint32_t)p->info);
-    }
-    LOG(stderr, "\n");
-
-
-//	old_n = a->mem.n;
-//	for (k = 0; k < old_n; ++k) { //
-//		bwtintv_t *p = &a->mem.a[k];
-//		int start = p->info>>32, end = (int32_t)p->info;
-//		if (end - start < split_len || p->x[2] > opt->split_width) continue;
-//
-//		uint32_t kmer_count = 0; // 统计interval大于1的kmer的数量
-//        for(i = 0; i<mv.n; i++){
-//            bwtintv_t *p = &mv.a[i].y;
-//            uint64_t kmer_interval = p->x[2];
-//            uint32_t kmer_start = (uint32_t)(p->info >> 32);
-//            uint32_t kmer_end = (uint32_t)p->info;
-//            if(start <= kmer_start && kmer_end <= end && kmer_interval > 1){
-//                ++kmer_count;
-//            }
-//        }
-//
-//        if(kmer_count >= 2){
-//            bwt_smem1(bwt, len, seq, (start + end)>>1, p->x[2]+1, &a->mem1, a->tmpv);
-//
-//            for (i = 0; i < a->mem1.n; ++i){
-//                if ((uint32_t)a->mem1.a[i].info - (a->mem1.a[i].info>>32) >= opt->min_seed_len){
-////                fprintf(stderr, "mem pass2: %d x: %ld %ld %ld info: %ld %u\n", i, a->mem1.a[i].x[0], a->mem1.a[i].x[1], a->mem1.a[i].x[2], a->mem1.a[i].info >> 32, (uint32_t)a->mem1.a[i].info);
-//                    kv_push(bwtintv_t, a->mem, a->mem1.a[i]);
-//                }
-//            }
-//        }
+//    for(i = 0; i<mv.n; i++){
+//        bwtintv_t *p = &mv.a[i].y;
+//        kv_push(bwtintv_t, a->mem, *p);
+//        LOG(stderr, "pass 2: x: %ld %ld %ld info: %u %u\n", p->x[0], p->x[1], p->x[2], (uint32_t)(p->info>>32), (uint32_t)p->info);
 //    }
+//    LOG(stderr, "\n");
+//    kv_destroy(mv);
+
+	old_n = a->mem.n;
+	for (k = 0; k < old_n; ++k) { //
+		bwtintv_t *p = &a->mem.a[k];
+		int start = p->info>>32, end = (int32_t)p->info;
+		if (end - start < split_len || p->x[2] > opt->split_width) continue;
+
+		uint32_t kmer_count = 0; // 统计interval大于1的kmer的数量
+        for(i = 0; i<mv.n; i++){
+            bwtintv_t *p = &mv.a[i].y;
+            uint64_t kmer_interval = p->x[2];
+            uint32_t kmer_start = (uint32_t)(p->info >> 32);
+            uint32_t kmer_end = (uint32_t)p->info;
+            if(start <= kmer_start && kmer_end <= end && kmer_interval > 1){
+                ++kmer_count;
+            }
+        }
+
+        if(kmer_count >= 2){
+            bwt_smem1(bwt, len, seq, (start + end)>>1, p->x[2]+1, &a->mem1, a->tmpv);
+
+            for (i = 0; i < a->mem1.n; ++i){
+                if ((uint32_t)a->mem1.a[i].info - (a->mem1.a[i].info>>32) >= opt->min_seed_len){
+//                fprintf(stderr, "mem pass2: %d x: %ld %ld %ld info: %ld %u\n", i, a->mem1.a[i].x[0], a->mem1.a[i].x[1], a->mem1.a[i].x[2], a->mem1.a[i].info >> 32, (uint32_t)a->mem1.a[i].info);
+                    kv_push(bwtintv_t, a->mem, a->mem1.a[i]);
+                }
+            }
+        }
+    }
 	PROFILE_END(seed_pass2);
 
 	// third pass: LAST-like
