@@ -58,6 +58,10 @@ typedef struct {
 } bwt_t;
 
 typedef struct {
+	bwtint_t x[3];
+} bwtintv_x_t;
+
+typedef struct {
 	bwtint_t x[3], info; // x[0]表示low边界，x[1]表示反向互补序列的low边界，x[2]表示interval的大小，info高32bit和低32bit分别表示此interval对应的起止位置
 } bwtintv_t; // 用于表示bwt的interval
 

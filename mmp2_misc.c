@@ -152,8 +152,8 @@ void mm_err_fread(void *p, size_t size, size_t nitems, FILE *fp)
 
 #include "mmp2_ksort.h"
 
-#define sort_key_320x(a) ((a).x)
-KRADIX_SORT_INIT(320x, mm320_t, sort_key_320x, 8)
+#define sort_key_256x(a) ((a).x)
+KRADIX_SORT_INIT(256x, mm256_t, sort_key_256x, 8)
 
 #define sort_key_64(x) (x)
 KRADIX_SORT_INIT(64, uint64_t, sort_key_64, 8)

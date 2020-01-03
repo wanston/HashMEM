@@ -289,25 +289,17 @@ bwaidx_t *bwa_idx_load_from_disk(const char *hint, int which)
 	/*********加载哈希索引*********/
     char *fnw;
     mm_idx_reader_t *idx_rdr;
-    mm_idxopt_t ipt;
     mm_idx_t *mi;
     int n_threads = 1;
-
-    ipt.batch_size = 4000000000;
-    ipt.bucket_bits = 14;
-    ipt.flag = 0;
-    ipt.k = 21;
-    ipt.mini_batch_size = 50000000;
-    ipt.w = 11;
 
     fnw = (char*)malloc(strlen(hint) + 10);
     strcpy(fnw, hint);
     strcat(fnw, ".mmi2");
 
-    idx_rdr = mm_idx_reader_open(fnw, &ipt, NULL);
+    idx_rdr = mm_idx_reader_open(fnw, NULL, NULL);
     if (idx_rdr == 0) {
         fprintf(stderr, "[ERROR] failed to open file '%s'\n", fnw);
-        return 1;
+        return 0;
     }
     mi = mm_idx_reader_read(idx_rdr, n_threads, NULL);
     mm_idx_reader_close(idx_rdr);

@@ -267,6 +267,7 @@ CMakeFiles/bwa.dir/mmp2_index.c.o
  /home/wt/Project/bwa-HashMEM/mmp2_kvec.h
  /home/wt/Project/bwa-HashMEM/mmp2_minimap.h
  /home/wt/Project/bwa-HashMEM/mmp2_mmpriv.h
+ /home/wt/Project/bwa-HashMEM/utils.h
 CMakeFiles/bwa.dir/mmp2_kalloc.c.o
  /home/wt/Project/bwa-HashMEM/mmp2_kalloc.c
  /home/wt/Project/bwa-HashMEM/mmp2_kalloc.h
@@ -293,6 +294,7 @@ CMakeFiles/bwa.dir/mmp2_sketch.c.o
  /home/wt/Project/bwa-HashMEM/mmp2_minimap.h
  /home/wt/Project/bwa-HashMEM/mmp2_mmpriv.h
  /home/wt/Project/bwa-HashMEM/mmp2_sketch.c
+ /home/wt/Project/bwa-HashMEM/utils.h
 CMakeFiles/bwa.dir/pemerge.c.o
  /home/wt/Project/bwa-HashMEM/bntseq.h
  /home/wt/Project/bwa-HashMEM/bwa.h

@@ -233,9 +233,9 @@ int bwa_bwt2sa(int argc, char *argv[]) // the "bwt2sa" command
 
 int bwa_index(int argc, char *argv[]) // the "index" command
 {
-	int c, algo_type = BWTALGO_AUTO, is_64 = 0, block_size = 10000000;
+	int c, algo_type = BWTALGO_AUTO, is_64 = 0, block_size = 10000000, w=11, k=21;
 	char *prefix = 0, *str;
-	while ((c = getopt(argc, argv, "6a:p:b:")) >= 0) {
+	while ((c = getopt(argc, argv, "6a:p:b:w:k:")) >= 0) {
 		switch (c) {
 		case 'a': // if -a is not set, algo_type will be determined later
 			if (strcmp(optarg, "rb2") == 0) algo_type = BWTALGO_RB2;
@@ -251,6 +251,12 @@ int bwa_index(int argc, char *argv[]) // the "index" command
 			else if (*str == 'M' || *str == 'm') block_size *= 1024 * 1024;
 			else if (*str == 'K' || *str == 'k') block_size *= 1024;
 			break;
+        case 'w':
+            w = strtol(optarg, &str, 10);
+            break;
+        case 'k':
+            k = strtol(optarg, &str, 10);
+            break;
 		default: return 1;
 		}
 	}
@@ -272,9 +278,119 @@ int bwa_index(int argc, char *argv[]) // the "index" command
 		strcpy(prefix, argv[optind]);
 		if (is_64) strcat(prefix, ".64");
 	}
-	bwa_idx_build(argv[optind], prefix, algo_type, block_size); // 生成索引
+	bwa_idx_build(argv[optind], prefix, algo_type, block_size, w, k); // 生成索引
 	free(prefix);
 	return 0;
+}
+
+int bwa_idx_build_bwt(const char *fa, const char *prefix, int algo_type, int block_size){
+    extern void bwa_pac_rev_core(const char *fn, const char *fn_rev);
+
+    char *str, *str2, *str3;
+    clock_t t;
+    int64_t l_pac;
+
+    str  = (char*)calloc(strlen(prefix) + 10, 1);
+    str2 = (char*)calloc(strlen(prefix) + 10, 1);
+    str3 = (char*)calloc(strlen(prefix) + 10, 1);
+
+    // step 1
+    { // nucleotide indexing
+        gzFile fp = xzopen(fa, "r");// 尝试调用zlib库打开FASTA的压缩文件，同时也可以打开非压缩文件，fp是gzFile类型的
+        t = clock();
+        if (bwa_verbose >= 3) fprintf(stderr, "[bwa_index] Pack FASTA... ");
+        l_pac = bns_fasta2bntseq(fp, prefix, 0);// 生成.pac, .ann和.amb文件，返回pac文件中bp的长度。
+        if (bwa_verbose >= 3) fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
+        err_gzclose(fp);
+    }
+    if (algo_type == 0) algo_type = l_pac > 50000000? 2 : 3; // set the algorithm for generating BWT，algo_type值为0表示没有指定算法，那么就根据bp的长度来确定算法
+
+    // step 2
+    {
+        strcpy(str, prefix); strcat(str, ".pac");
+        strcpy(str2, prefix); strcat(str2, ".bwt");
+        t = clock();
+        if (bwa_verbose >= 3) fprintf(stderr, "[bwa_index] Construct BWT for the packed sequence...\n");
+        if (algo_type == 2)
+            bwt_bwtgen2(str, str2, block_size);
+        else if (algo_type == 1 || algo_type == 3) {
+            bwt_t *bwt;
+            bwt = bwt_pac2bwt(str, algo_type == 3);
+            bwt_dump_bwt(str2, bwt);
+            bwt_destroy(bwt);
+        }
+        if (bwa_verbose >= 3) fprintf(stderr, "[bwa_index] %.2f seconds elapse.\n", (float)(clock() - t) / CLOCKS_PER_SEC);
+    }
+
+    // step 3
+    {
+        bwt_t *bwt;
+        strcpy(str, prefix); strcat(str, ".bwt");
+        t = clock();
+        if (bwa_verbose >= 3) fprintf(stderr, "[bwa_index] Update BWT... ");
+        bwt = bwt_restore_bwt(str);
+        bwt_bwtupdate_core(bwt);
+        bwt_dump_bwt(str, bwt);
+        bwt_destroy(bwt);
+        if (bwa_verbose >= 3) fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
+    }
+
+    // step 4
+    {
+        gzFile fp = xzopen(fa, "r");
+        t = clock();
+        if (bwa_verbose >= 3) fprintf(stderr, "[bwa_index] Pack forward-only FASTA... ");
+        l_pac = bns_fasta2bntseq(fp, prefix, 1);
+        if (bwa_verbose >= 3) fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
+        err_gzclose(fp);
+    }
+
+    // step 5
+    bwt_t *bwt;
+    {
+
+        strcpy(str, prefix); strcat(str, ".bwt");
+        strcpy(str3, prefix); strcat(str3, ".sa");
+        t = clock();
+        if (bwa_verbose >= 3) fprintf(stderr, "[bwa_index] Construct SA from BWT and Occ... ");
+        bwt = bwt_restore_bwt(str);
+        bwt_cal_sa(bwt, 32);
+        bwt_dump_sa(str3, bwt);
+        if (bwa_verbose >= 3) fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
+    }
+
+    bwt_destroy(bwt);
+    free(str3); free(str2); free(str);
+}
+
+int bwa_idx_build_mmi(const char *fa, const char *prefix, int algo_type, int block_size, int w, int k){
+    char *str  = (char*)calloc(strlen(prefix) + 10, 1);
+    char *str2  = (char*)calloc(strlen(prefix) + 10, 1);
+    strcpy(str, prefix); strcat(str, ".bwt");
+    strcpy(str2, prefix); strcat(str2, ".mmi2");
+
+    if (bwa_verbose >= 3) fprintf(stderr, "[bwa_index] Construct mmi from BWT and FASTA");
+    bwt_t* bwt = bwt_restore_bwt(str);
+
+    mm_idx_reader_t *idx_rdr;
+    mm_idxopt_t ipt;
+    mm_idx_t *mi;
+    int n_threads = 1;
+
+    ipt.batch_size = 4000000000; // TODO：观察minimap2如何做的
+    ipt.bucket_bits = 14;
+    ipt.flag = 0;
+    ipt.k = k;
+    ipt.mini_batch_size = 50000000;
+    ipt.w = w;
+
+    idx_rdr = mm_idx_reader_open(fa, &ipt, str2);
+    if (idx_rdr == 0) {
+        fprintf(stderr, "[ERROR] failed to open file '%s'\n", fa);
+        return 1;
+    }
+    mi = mm_idx_reader_read(idx_rdr, n_threads, bwt);
+    mm_idx_reader_close(idx_rdr);
 }
 
 /**
@@ -291,113 +407,28 @@ int bwa_index(int argc, char *argv[]) // the "index" command
  * @param block_size	默认为10,000,000
  * @return 0
  */
-int bwa_idx_build(const char *fa, const char *prefix, int algo_type, int block_size)
+int bwa_idx_build(const char *fa, const char *prefix, int algo_type, int block_size, int w, int k)
 {
-	extern void bwa_pac_rev_core(const char *fn, const char *fn_rev);
+    char *str, *str2;
 
-	char *str, *str2, *str3;
-	clock_t t;
-	int64_t l_pac;
+    str  = (char*)calloc(strlen(prefix) + 10, 1);
+    str2 = (char*)calloc(strlen(prefix) + 10, 1);
 
-	str  = (char*)calloc(strlen(prefix) + 10, 1);
-	str2 = (char*)calloc(strlen(prefix) + 10, 1);
-	str3 = (char*)calloc(strlen(prefix) + 10, 1);
+    strcpy(str, prefix); strcat(str, ".bwt");
+    strcpy(str2, prefix); strcat(str2, ".mmi2");
 
-	// step 1
-	{ // nucleotide indexing
-		gzFile fp = xzopen(fa, "r");// 尝试调用zlib库打开FASTA的压缩文件，同时也可以打开非压缩文件，fp是gzFile类型的
-		t = clock();
-		if (bwa_verbose >= 3) fprintf(stderr, "[bwa_index] Pack FASTA... ");
-		l_pac = bns_fasta2bntseq(fp, prefix, 0);// 生成.pac, .ann和.amb文件，返回pac文件中bp的长度。
-		if (bwa_verbose >= 3) fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
-		err_gzclose(fp);
-	}
-	if (algo_type == 0) algo_type = l_pac > 50000000? 2 : 3; // set the algorithm for generating BWT，algo_type值为0表示没有指定算法，那么就根据bp的长度来确定算法
-
-	// step 2
-	{
-		strcpy(str, prefix); strcat(str, ".pac");
-		strcpy(str2, prefix); strcat(str2, ".bwt");
-		t = clock();
-		if (bwa_verbose >= 3) fprintf(stderr, "[bwa_index] Construct BWT for the packed sequence...\n");
-		if (algo_type == 2)
-		    bwt_bwtgen2(str, str2, block_size);
-		else if (algo_type == 1 || algo_type == 3) {
-			bwt_t *bwt;
-			bwt = bwt_pac2bwt(str, algo_type == 3);
-			bwt_dump_bwt(str2, bwt);
-			bwt_destroy(bwt);
-		}
-		if (bwa_verbose >= 3) fprintf(stderr, "[bwa_index] %.2f seconds elapse.\n", (float)(clock() - t) / CLOCKS_PER_SEC);
-	}
-
-	// step 3
-	{
-		bwt_t *bwt;
-		strcpy(str, prefix); strcat(str, ".bwt");
-		t = clock();
-		if (bwa_verbose >= 3) fprintf(stderr, "[bwa_index] Update BWT... ");
-		bwt = bwt_restore_bwt(str);
-		bwt_bwtupdate_core(bwt);
-		bwt_dump_bwt(str, bwt);
-		bwt_destroy(bwt);
-		if (bwa_verbose >= 3) fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
-	}
-
-	// step 4
-	{
-		gzFile fp = xzopen(fa, "r");
-		t = clock();
-		if (bwa_verbose >= 3) fprintf(stderr, "[bwa_index] Pack forward-only FASTA... ");
-		l_pac = bns_fasta2bntseq(fp, prefix, 1);
-		if (bwa_verbose >= 3) fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
-		err_gzclose(fp);
-	}
-
-	// step 5
-    bwt_t *bwt;
-	{
-
-		strcpy(str, prefix); strcat(str, ".bwt");
-		strcpy(str3, prefix); strcat(str3, ".sa");
-		t = clock();
-		if (bwa_verbose >= 3) fprintf(stderr, "[bwa_index] Construct SA from BWT and Occ... ");
-		bwt = bwt_restore_bwt(str);
-		bwt_cal_sa(bwt, 32);
-		bwt_dump_sa(str3, bwt);
-		if (bwa_verbose >= 3) fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
-	}
-
-	// step 6
-    {
-        /************新建哈希索引*************/
-        char *fnw;
-        mm_idx_reader_t *idx_rdr;
-        mm_idxopt_t ipt;
-        mm_idx_t *mi;
-        int n_threads = 1;
-
-        ipt.batch_size = 4000000000;
-        ipt.bucket_bits = 14;
-        ipt.flag = 0;
-        ipt.k = 21;
-        ipt.mini_batch_size = 50000000;
-        ipt.w = 11;
-
-        fnw = (char*)malloc(strlen(fa) + 10);
-        strcpy(fnw, fa);
-        strcat(fnw, ".mmi2");
-
-        idx_rdr = mm_idx_reader_open(fa, &ipt, fnw);
-        if (idx_rdr == 0) {
-            fprintf(stderr, "[ERROR] failed to open file '%s'\n", fa);
-            return 1;
-        }
-        mi = mm_idx_reader_read(idx_rdr, n_threads, bwt);
-        mm_idx_reader_close(idx_rdr);
-        /***********************************/
+    FILE* fp;
+    if(!(fp = fopen(str, "r"))){
+        bwa_idx_build_bwt(fa, prefix, algo_type, block_size);
+    }else{
+        fclose(fp);
     }
-    bwt_destroy(bwt);
-	free(str3); free(str2); free(str);
+
+    if(!(fp = fopen(str2, "r"))){
+        bwa_idx_build_mmi(fa, prefix, algo_type, block_size, w, k);
+    }else{
+        fclose(fp);
+    }
+
 	return 0;
 }

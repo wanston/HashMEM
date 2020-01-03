@@ -6,6 +6,8 @@
 #include "mmp2_kvec.h"
 #include "mmp2_mmpriv.h"
 #include "bwt.h"
+#include "mmp2_minimap.h"
+#include "utils.h"
 
 unsigned char seq_nt4_table[256] = {
 	0, 1, 2, 3,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
@@ -58,38 +60,20 @@ static inline int tq_shift(tiny_queue_t *q)
 	return x;
 }
 
-/**
- * Find symmetric (w,k)-minimizers on a DNA sequence
- *
- * @param km     thread-local memory pool; using NULL falls back to malloc()
- * @param str    DNA sequence
- * @param len    length of $str
- * @param w      find a minimizer for every $w consecutive k-mers
- * @param k      k-mer size
- * @param rid    reference ID; will be copied to the output $p array
- * @param is_hpc homopolymer-compressed or not
- * @param p      minimizers
- *               p->a[i].x = kMer<<8 | kmerSpan
- *               p->a[i].y = rid<<32 | lastPos<<1 | strand
- *               where lastPos is the position of the last base of the i-th minimizer,
- *               and strand indicates whether the minimizer comes from the top or the bottom strand.
- *               Callers may want to set "p->n = 0"; otherwise results are appended to p
- */
-void mm_sketch1(void *km, const uint8_t *seq, int len, int w, int k, uint32_t rid, int is_hpc, mm320_v *p)
-{
+void mm_sketch_intv_uint8(void *km, const uint8_t *seq, int len, int w, int k, int is_hpc, mm256_v *p){
 	uint64_t shift1 = 2 * (k - 1), mask = (1ULL<<2*k) - 1, kmer[2] = {0,0};
 	int i, j, l, buf_pos, min_pos, kmer_span = 0; // kmer-span在is_hpc为false时为k；l表示遍历过的序列的长度
-	mm320_t buf[256], min = { UINT64_MAX, {UINT64_MAX,UINT64_MAX,UINT64_MAX,UINT64_MAX} }; // min 用于存储窗口的minimizer，buf只有前w个位置被使用，用于存储窗口的w个kmer，用于计算此窗口的minimizer。
+	mm256_t buf[256], min = {UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX}; // min 用于存储窗口的minimizer，buf只有前w个位置被使用，用于存储窗口的w个kmer，用于计算此窗口的minimizer。
 	tiny_queue_t tq;
 
 	assert(len > 0 && (w > 0 && w < 256) && (k > 0 && k <= 28)); // 56 bits for k-mer; could use long k-mers, but 28 enough in practice
 	memset(buf, 0xff, w * 16);
 	memset(&tq, 0, sizeof(tiny_queue_t));
-	kv_resize(mm320_t, km, *p, p->n + len/w);
+	kv_resize(mm256_t, km, *p, p->n + len/w);
 
 	for (i = l = buf_pos = min_pos = 0; i < len; ++i) {
 		int c = seq[i];
-		mm320_t info = { UINT64_MAX, UINT64_MAX };
+		mm256_t info = {UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX};
 		if (c < 4) { // not an ambiguous base
 			int z;
 			if (is_hpc) {
@@ -111,52 +95,147 @@ void mm_sketch1(void *km, const uint8_t *seq, int len, int w, int k, uint32_t ri
 			++l;
 			if (l >= k && kmer_span < 256) {
 				info.x = hash64(kmer[z], mask) << 8 | kmer_span;
-//                info.y.info = z; // z是正反链标志
-                info.y.info = i-kmer_span+1;
-                info.y.info <<= 32;
-                info.y.info += i;
-                info.y.x[0] = kmer[z];
-                info.y.x[1] = z;
+				info.y[0] = kmer[z];
 			}
 		} else l = 0, tq.count = tq.front = 0, kmer_span = 0;
 		buf[buf_pos] = info; // need to do this here as appropriate buf_pos and buf[buf_pos] are needed below
 		if (l == w + k - 1 && min.x != UINT64_MAX) { // special case for the first window - because identical k-mers are not stored yet，这里的逻辑是保存和第一个窗口内的minimizer相同的kmer。
 			for (j = buf_pos + 1; j < w; ++j)
-				if (min.x == buf[j].x && j != min_pos) kv_push(mm320_t, km, *p, buf[j]);
+				if (min.x == buf[j].x && j != min_pos) kv_push(mm256_t, km, *p, buf[j]);
 			for (j = 0; j < buf_pos; ++j)
-				if (min.x == buf[j].x && j != min_pos) kv_push(mm320_t, km, *p, buf[j]);
+				if (min.x == buf[j].x && j != min_pos) kv_push(mm256_t, km, *p, buf[j]);
 		}
 		// 下面的逻辑就是存储旧的（前一个窗口的）minimizer，然后计算当前窗口的minimizer
 		if (info.x <= min.x) { // 新的kmer小于前面窗口的minimizer，a new minimum; then write the old min
 			if (l >= w + k && min.x != UINT64_MAX)
-			    kv_push(mm320_t, km, *p, min); // 存储旧的minimizer，只有在遍历过第一个窗口后（此时min表示前面窗口的minmimizer），才把前面窗口的minimizer保存
+				kv_push(mm256_t, km, *p, min); // 存储旧的minimizer，只有在遍历过第一个窗口后（此时min表示前面窗口的minmimizer），才把前面窗口的minimizer保存
 			min = info, min_pos = buf_pos;
 		} else if (buf_pos == min_pos) { // old min has moved outside the window，此时需要计算出当前窗口的minimizer，因为minimizer有更新。（minimizer减少存储的一大原因就是多个window共享同一minimizer）
-			if (l >= w + k - 1 && min.x != UINT64_MAX) kv_push(mm320_t, km, *p, min); // 存储旧的minimizer
+			if (l >= w + k - 1 && min.x != UINT64_MAX) kv_push(mm256_t, km, *p, min); // 存储旧的minimizer
 			for (j = buf_pos + 1, min.x = UINT64_MAX; j < w; ++j) // the two loops are necessary when there are identical k-mers，在这里两个循环是必要的，因为如果有多个kmer是当前窗口的minimizer的话，这样写可以保证取到的kmer是最右边的kmer。
 				if (min.x >= buf[j].x) min = buf[j], min_pos = j; // >= is important s.t. min is always the closest k-mer
 			for (j = 0; j <= buf_pos; ++j)
 				if (min.x >= buf[j].x) min = buf[j], min_pos = j;
 			if (l >= w + k - 1 && min.x != UINT64_MAX) { // write identical k-mers，截止到此时，新的minimizer已经计算完毕，但是窗口内的和新minimizer相等的kmer也要存储下来。
 				for (j = buf_pos + 1; j < w; ++j) // these two loops make sure the output is sorted
-					if (min.x == buf[j].x && j != min_pos) kv_push(mm320_t, km, *p, buf[j]);
+					if (min.x == buf[j].x && j != min_pos) kv_push(mm256_t, km, *p, buf[j]);
 				for (j = 0; j <= buf_pos; ++j)
-					if (min.x == buf[j].x && j != min_pos) kv_push(mm320_t, km, *p, buf[j]);
+					if (min.x == buf[j].x && j != min_pos) kv_push(mm256_t, km, *p, buf[j]);
 			}
 		}
 		if (++buf_pos == w) buf_pos = 0;
 		// 计算到这里的时候，min记录的就是当前窗口的minimizer。
 	}
 	if (min.x != UINT64_MAX) // 把最后一个窗口的minimizer存储下来。
-		kv_push(mm320_t, km, *p, min);
+		kv_push(mm256_t, km, *p, min);
 }
 
-void mm_sketch(void *km, const char *str, int len, int w, int k, uint32_t rid, int is_hpc, mm320_v *p){
+
+void mm_sketch_info_uint8(void *km, const uint8_t *seq, int len, int w, int k, int is_hpc, mm128_v *p){
+    uint64_t shift1 = 2 * (k - 1), mask = (1ULL<<2*k) - 1, kmer[2] = {0,0};
+    int i, j, l, buf_pos, min_pos, kmer_span = 0; // kmer-span在is_hpc为false时为k；l表示遍历过的序列的长度
+    mm128_t buf[256], min = {UINT64_MAX, UINT64_MAX}; // min 用于存储窗口的minimizer，buf只有前w个位置被使用，用于存储窗口的w个kmer，用于计算此窗口的minimizer。
+    tiny_queue_t tq;
+
+    assert(len > 0 && (w > 0 && w < 256) && (k > 0 && k <= 28)); // 56 bits for k-mer; could use long k-mers, but 28 enough in practice
+    memset(buf, 0xff, w * 16);
+    memset(&tq, 0, sizeof(tiny_queue_t));
+    kv_resize(mm128_t, km, *p, p->n + len/w);
+
+    for (i = l = buf_pos = min_pos = 0; i < len; ++i) {
+        int c = seq[i];
+        mm128_t info = {UINT64_MAX, UINT64_MAX};
+        if (c < 4) { // not an ambiguous base
+            int z;
+            if (is_hpc) {
+                int skip_len = 1;
+                if (i + 1 < len && seq[i] == c) {
+                    for (skip_len = 2; i + skip_len < len; ++skip_len)
+                        if (seq[i] != c)
+                            break;
+                    i += skip_len - 1; // put $i at the end of the current homopolymer run
+                }
+                tq_push(&tq, skip_len);
+                kmer_span += skip_len;
+                if (tq.count > k) kmer_span -= tq_shift(&tq);
+            } else kmer_span = l + 1 < k? l + 1 : k;
+            kmer[0] = (kmer[0] << 2 | c) & mask;           // forward k-mer 前向的kmer，其中低位的2k bit记录了碱基
+            kmer[1] = (kmer[1] >> 2) | (3ULL^c) << shift1; // reverse k-mer 反向互补的kmer，其中低位的2k bit记录了碱基
+            if (kmer[0] == kmer[1]) continue; // skip "symmetric k-mers" as we don't know it strand
+            z = kmer[0] < kmer[1]? 0 : 1; // strand
+            ++l;
+            if (l >= k && kmer_span < 256) {
+                info.x = hash64(kmer[z], mask) << 8 | kmer_span;
+                info.y = i-kmer_span+1;
+                info.y <<= 32;
+                info.y += i;
+                info.y |= (uint64_t)z<<63;
+            }
+        } else l = 0, tq.count = tq.front = 0, kmer_span = 0;
+        buf[buf_pos] = info; // need to do this here as appropriate buf_pos and buf[buf_pos] are needed below
+        if (l == w + k - 1 && min.x != UINT64_MAX) { // special case for the first window - because identical k-mers are not stored yet，这里的逻辑是保存和第一个窗口内的minimizer相同的kmer。
+            for (j = buf_pos + 1; j < w; ++j)
+                if (min.x == buf[j].x && j != min_pos) kv_push(mm128_t, km, *p, buf[j]);
+            for (j = 0; j < buf_pos; ++j)
+                if (min.x == buf[j].x && j != min_pos) kv_push(mm128_t, km, *p, buf[j]);
+        }
+        // 下面的逻辑就是存储旧的（前一个窗口的）minimizer，然后计算当前窗口的minimizer
+        if (info.x <= min.x) { // 新的kmer小于前面窗口的minimizer，a new minimum; then write the old min
+            if (l >= w + k && min.x != UINT64_MAX)
+                kv_push(mm128_t, km, *p, min); // 存储旧的minimizer，只有在遍历过第一个窗口后（此时min表示前面窗口的minmimizer），才把前面窗口的minimizer保存
+            min = info, min_pos = buf_pos;
+        } else if (buf_pos == min_pos) { // old min has moved outside the window，此时需要计算出当前窗口的minimizer，因为minimizer有更新。（minimizer减少存储的一大原因就是多个window共享同一minimizer）
+            if (l >= w + k - 1 && min.x != UINT64_MAX) kv_push(mm128_t, km, *p, min); // 存储旧的minimizer
+            for (j = buf_pos + 1, min.x = UINT64_MAX; j < w; ++j) // the two loops are necessary when there are identical k-mers，在这里两个循环是必要的，因为如果有多个kmer是当前窗口的minimizer的话，这样写可以保证取到的kmer是最右边的kmer。
+                if (min.x >= buf[j].x) min = buf[j], min_pos = j; // >= is important s.t. min is always the closest k-mer
+            for (j = 0; j <= buf_pos; ++j)
+                if (min.x >= buf[j].x) min = buf[j], min_pos = j;
+            if (l >= w + k - 1 && min.x != UINT64_MAX) { // write identical k-mers，截止到此时，新的minimizer已经计算完毕，但是窗口内的和新minimizer相等的kmer也要存储下来。
+                for (j = buf_pos + 1; j < w; ++j) // these two loops make sure the output is sorted
+                    if (min.x == buf[j].x && j != min_pos) kv_push(mm128_t, km, *p, buf[j]);
+                for (j = 0; j <= buf_pos; ++j)
+                    if (min.x == buf[j].x && j != min_pos) kv_push(mm128_t, km, *p, buf[j]);
+            }
+        }
+        if (++buf_pos == w) buf_pos = 0;
+        // 计算到这里的时候，min记录的就是当前窗口的minimizer。
+    }
+    if (min.x != UINT64_MAX) // 把最后一个窗口的minimizer存储下来。
+        kv_push(mm128_t, km, *p, min);
+}
+/**
+ * Find symmetric (w,k)-minimizers on a DNA sequence
+ *
+ * @param km     thread-local memory pool; using NULL falls back to malloc()
+ * @param str    DNA sequence
+ * @param len    length of $str
+ * @param w      find a minimizer for every $w consecutive k-mers
+ * @param k      k-mer size
+ * @param rid    reference ID; will be copied to the output $p array
+ * @param is_hpc homopolymer-compressed or not
+ * @param p      minimizers
+ *               p->a[i].x = kMer<<8 | kmerSpan
+ *               p->a[i].y = rid<<32 | lastPos<<1 | strand
+ *               where lastPos is the position of the last base of the i-th minimizer,
+ *               and strand indicates whether the minimizer comes from the top or the bottom strand.
+ *               Callers may want to set "p->n = 0"; otherwise results are appended to p
+ */
+void mm_sketch_intv_char(void *km, const char *str, int len, int w, int k, int is_hpc, mm256_v *p){
     uint8_t *seq = (uint8_t*)malloc(len);
     int i;
     for(i = 0; i < len; i++){
         seq[i] = seq_nt4_table[(uint8_t)str[i]];
     }
-    mm_sketch1(km, seq, len, w, k, rid, is_hpc, p);
+    mm_sketch_intv_uint8(km, seq, len, w, k, is_hpc, p);
+    free(seq);
+}
+
+void mm_sketch_info_char(void *km, const char *str, int len, int w, int k, int is_hpc, mm128_v *p){
+    uint8_t *seq = (uint8_t*)malloc(len);
+    int i;
+    for(i = 0; i < len; i++){
+        seq[i] = seq_nt4_table[(uint8_t)str[i]];
+    }
+    mm_sketch_info_uint8(km, seq, len, w, k, is_hpc, p);
     free(seq);
 }

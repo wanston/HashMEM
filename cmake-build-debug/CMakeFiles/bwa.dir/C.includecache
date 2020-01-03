@@ -871,6 +871,8 @@ zlib.h
 -
 mmp2_bseq.h
 /home/wt/Project/bwa-HashMEM/mmp2_bseq.h
+utils.h
+/home/wt/Project/bwa-HashMEM/utils.h
 
 /home/wt/Project/bwa-HashMEM/mmp2_kalloc.c
 stdio.h
@@ -969,6 +971,10 @@ mmp2_mmpriv.h
 /home/wt/Project/bwa-HashMEM/mmp2_mmpriv.h
 bwt.h
 /home/wt/Project/bwa-HashMEM/bwt.h
+mmp2_minimap.h
+/home/wt/Project/bwa-HashMEM/mmp2_minimap.h
+utils.h
+/home/wt/Project/bwa-HashMEM/utils.h
 
 /home/wt/Project/bwa-HashMEM/pemerge.c
 stdio.h

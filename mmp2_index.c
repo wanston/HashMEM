@@ -18,7 +18,7 @@
 
 #define idx_hash(a) ((a))
 #define idx_eq(a, b) ((a) == (b))
-KHASH_INIT(idx, uint64_t, bwtintv_t, 1, idx_hash, idx_eq)
+KHASH_INIT(idx, uint64_t, bwtintv_x_t, 1, idx_hash, idx_eq)
 typedef khash_t(idx) idxhash_t;
 
 KHASH_MAP_INIT_STR(str, uint32_t)
@@ -41,7 +41,7 @@ KHASH_MAP_INIT_STR(str, uint32_t)
  *      由于该哈希表的实现，key的最低1bit不影响key的hash的结果。
  * */
 typedef struct mm_idx_bucket_s {
-	mm320_v a;
+	mm256_v a;
 //	int32_t n;   // size of the _p_ array
 //	uint64_t *p; // position array for minimizers appearing >1 times
 	void *h;     // hash table indexing _p_ and minimizers appearing once
@@ -86,18 +86,17 @@ void mm_idx_destroy(mm_idx_t *mi)
  *  @param n            记录返回的uint64_t动态数组的大小，每个uint64_t值记录minimizer的位置信息，应该是对应mm128_t中的y。
  *  @retrun             返回的指针指向动态数组
  * */
-bwtintv_t mm_idx_get(const mm_idx_t *mi, uint64_t minier)
+bwtintv_x_t mm_idx_get(const mm_idx_t *mi, uint64_t minier)
 {
 	int mask = (1<<mi->b) - 1; // minimizer的哈希值的mask
 	khint_t k;
-	bwtintv_t ret = {0,0,0,0};
+	bwtintv_x_t ret = {0,0,0};
 	mm_idx_bucket_t *b = &mi->B[minier&mask]; //
 	idxhash_t *h = (idxhash_t*)b->h;
 	if (h == 0) return ret;
 	k = kh_get(idx, h, minier>>mi->b);
 	if (k == kh_end(h)) return ret;
 	ret = kh_val(h, k);
-	ret.info = 1;
 	return ret;
 }
 
@@ -193,10 +192,10 @@ int32_t mm_idx_cal_max_occ(const mm_idx_t *mi, float f)
 	return thres;
 }
 
-bwtintv_t get_kmer_interval(uint64_t seq, uint8_t kmer_span, const bwt_t *bwt, int *good){
+bwtintv_x_t get_kmer_interval(uint64_t seq, uint8_t kmer_span, const bwt_t *bwt){
     int i, j, bp, bp_c;
     bwtintv_t ik, ok[4]; // 我要存储的是kv_push的结果
-    bwtintv_t ret;
+    bwtintv_x_t ret = {0, 0, 0};
     bp = seq >> (2*kmer_span-2) & 3;
     if (bp > 3){
         fprintf(stderr, "WT: In getInterval: bp > 3\n");
@@ -211,15 +210,15 @@ bwtintv_t get_kmer_interval(uint64_t seq, uint8_t kmer_span, const bwt_t *bwt, i
             bwt_extend(bwt, &ik, ok, 0);
             ik = ok[bp_c];
             if(ik.x[2] <= 0){
-                *good = 0;
                 break;
             }
         }else{
             fprintf(stderr, "WT: In getInterval: bp > 3\n");
+            return ret;
         }
     }
-    *good = 1;
-    return ok[bp_c];
+    ret.x[0] = ik.x[0]; ret.x[1] = ik.x[1]; ret.x[2] = ik.x[2];
+	return ret;
 }
 
 /*********************************
@@ -245,7 +244,7 @@ static void worker_post(void *g, long i, int tid)
 
 	// sort by minimizer，升序排序，根据mm128_t的x比较大小。此时，相同的minimzer被连续放置，
 	// 相同的minimizer的来源：可能是同一窗口内的最小kmer有多个，也可能是不同窗口的最小kmer相同。
-	radix_sort_320x(b->a.a, b->a.a + b->a.n);
+	radix_sort_256x(b->a.a, b->a.a + b->a.n);
 
 	// count and preallocate，该段代码执行后，b->n记录存在重复的minimizer的总数，n_keys则统计bucket中的minimizer有几种。
 	// 比如说，bucket中的(minimizer,pos)，是(1,x) (1,y) (2,z) (3,a) (3,b)，那么，b->n的值就是2+2=4，n_keys的值是3。
@@ -262,15 +261,13 @@ static void worker_post(void *g, long i, int tid)
 		if (j == b->a.n || b->a.a[j].x>>8 != b->a.a[j-1].x>>8) {
 			khint_t itr;
 			int absent;
-			mm320_t *p = &b->a.a[j-1];
+			mm256_t *p = &b->a.a[j-1];
 			itr = kh_put(idx, h, p->x>>8>>mi->b, &absent);
 			assert(absent);
 
 			uint8_t kmer_span = (uint8_t)p->x;
-			int good;
-            bwtintv_t intv = get_kmer_interval(p->y.x[0], kmer_span, bwt, &good);// 低kmer_span*2位存储的是kmer。其中高位表示左边的碱基，低位表示右边的碱基。
-            if(good) {
-                intv.info = p->y.x[1]; // 这里的info存储正反链信息
+            bwtintv_x_t intv = get_kmer_interval(p->y[0], kmer_span, bwt);// 低kmer_span*2位存储的是kmer。其中高位表示左边的碱基，低位表示右边的碱基。
+            if(intv.x[2] > 0) {
                 kh_val(h, itr) = intv; // TODO：建表和查询的数据结构需要再精简一下。
             }
 		}
@@ -295,6 +292,7 @@ static void mm_idx_post(mm_idx_t *mi, int n_threads, const bwt_t *bwt)
 #include <string.h>
 #include <zlib.h>
 #include "mmp2_bseq.h"
+#include "utils.h"
 
 typedef struct {
 	int mini_batch_size; 			// 一批处理的大小
@@ -306,7 +304,7 @@ typedef struct {
 typedef struct {
     int n_seq; // 数组的大小
 	mm_bseq1_t *seq; // 动态数组，每个元素表示一条序列（目前已知的是fasta的序列）
-	mm320_v a; // 元素为128bit数据的vector，用于保存由seq计算出的minimizer。
+	mm256_v a; // 保存seq计算出来的kmer和interval信息
 } step_t; // 用于存储每一step中处理的序列，也就是一个batch的序列
 
 
@@ -314,12 +312,12 @@ typedef struct {
  * 把数组a中的mm128_t元素添加进mi中对应的bucket。
  * bucket的确定根据minimizer的哈希值的低b位。
  * */
-static void mm_idx_add(mm_idx_t *mi, int n, const mm320_t *a)
+static void mm_idx_add(mm_idx_t *mi, int n, const mm256_t *a)
 {
 	int i, mask = (1<<mi->b) - 1;
 	for (i = 0; i < n; ++i) {
-		mm320_v *p = &mi->B[a[i].x>>8&mask].a;
-		kv_push(mm320_t, 0, *p, a[i]);
+		mm256_v *p = &mi->B[a[i].x>>8&mask].a;
+		kv_push(mm256_t, 0, *p, a[i]);
 	}
 }
 
@@ -391,7 +389,7 @@ static void *worker_pipeline(void *shared, int step, void *in)
 		for (i = 0; i < s->n_seq; ++i) {
 			mm_bseq1_t *t = &s->seq[i];
 			if (t->l_seq > 0){
-				mm_sketch(0, t->seq, t->l_seq, p->mi->w, p->mi->k, t->rid, p->mi->flag&MM_I_HPC, &s->a);
+				mm_sketch_intv_char(0, t->seq, t->l_seq, p->mi->w, p->mi->k, p->mi->flag&MM_I_HPC, &s->a);
 			}
 			else if (mm_verbose >= 2)
 				fprintf(stderr, "[WARNING] the length database sequence '%s' is 0\n", t->name);
@@ -448,55 +446,6 @@ mm_idx_t *mm_idx_build(const char *fn, int w, int k, int flag, int n_threads, co
 	return mi;
 }
 
-mm_idx_t *mm_idx_str(int w, int k, int is_hpc, int bucket_bits, int n, const char **seq, const char **name, const bwt_t* bwt)
-{
-	uint64_t sum_len = 0;
-	mm320_v a = {0,0,0};
-	mm_idx_t *mi;
-	khash_t(str) *h;
-	int i, flag = 0;
-
-	if (n <= 0) return 0;
-	for (i = 0; i < n; ++i) // get the total length
-		sum_len += strlen(seq[i]);
-	if (is_hpc) flag |= MM_I_HPC;
-	if (name == 0) flag |= MM_I_NO_NAME;
-	if (bucket_bits < 0) bucket_bits = 14;
-	mi = mm_idx_init(w, k, bucket_bits, flag);
-	mi->n_seq = n;
-	mi->seq = (mm_idx_seq_t*)kcalloc(mi->km, n, sizeof(mm_idx_seq_t)); // ->seq is allocated from km
-	mi->S = (uint32_t*)calloc((sum_len + 7) / 8, 4);
-	mi->h = h = kh_init(str);
-	for (i = 0, sum_len = 0; i < n; ++i) {
-		const char *s = seq[i];
-		mm_idx_seq_t *p = &mi->seq[i];
-		uint32_t j;
-		if (name && name[i]) {
-			int absent;
-			p->name = (char*)kmalloc(mi->km, strlen(name[i]) + 1);
-			strcpy(p->name, name[i]);
-			kh_put(str, h, p->name, &absent);
-			assert(absent);
-		}
-		p->offset = sum_len;
-		p->len = strlen(s);
-		for (j = 0; j < p->len; ++j) {
-			int c = seq_nt4_table[(uint8_t)s[j]];
-			uint64_t o = sum_len + j;
-			mm_seq4_set(mi->S, o, c);
-		}
-		sum_len += p->len;
-		if (p->len > 0) {
-			a.n = 0;
-			mm_sketch(0, s, p->len, w, k, i, is_hpc, &a);
-			mm_idx_add(mi, a.n, a.a);
-		}
-	}
-	free(a.a);
-	mm_idx_post(mi, 1, bwt);
-	return mi;
-}
-
 /**
  * index I/O，把索引保存成文件
  *
@@ -506,23 +455,12 @@ mm_idx_t *mm_idx_str(int w, int k, int is_hpc, int bucket_bits, int n, const cha
 void mm_idx_dump(FILE *fp, const mm_idx_t *mi)
 {
 	uint64_t sum_len = 0;
-	uint32_t x[5], i;
+	uint32_t x[4], i;
 
-	x[0] = mi->w, x[1] = mi->k, x[2] = mi->b, x[3] = mi->n_seq, x[4] = mi->flag;
+	x[0] = mi->w, x[1] = mi->k, x[2] = mi->b,  x[3] = mi->flag;
 	fwrite(MM_IDX_MAGIC, 1, 4, fp);
-	fwrite(x, 4, 5, fp);
-	for (i = 0; i < mi->n_seq; ++i) {
-		if (mi->seq[i].name) {
-			uint8_t l = strlen(mi->seq[i].name);
-			fwrite(&l, 1, 1, fp);
-			fwrite(mi->seq[i].name, 1, l, fp);
-		} else {
-			uint8_t l = 0;
-			fwrite(&l, 1, 1, fp);
-		}
-		fwrite(&mi->seq[i].len, 4, 1, fp);
-		sum_len += mi->seq[i].len;
-	}
+	fwrite(x, 4, 4, fp);
+
 	for (i = 0; i < 1<<mi->b; ++i) {
 		mm_idx_bucket_t *b = &mi->B[i];
 		khint_t k;
@@ -532,45 +470,30 @@ void mm_idx_dump(FILE *fp, const mm_idx_t *mi)
 		if (size == 0) continue;
 		for (k = 0; k < kh_end(h); ++k) {
 			uint64_t x;
-			bwtintv_t y;
+			bwtintv_x_t y;
 			if (!kh_exist(h, k)) continue;
 			x = kh_key(h, k);
 			y = kh_val(h, k);
 			fwrite(&x, 8, 1, fp);
-			fwrite(&y, sizeof(bwtintv_t), 1, fp);
+			fwrite(&y, sizeof(bwtintv_x_t), 1, fp);
+            LOG(stderr, "mm_idx_dump: %lx\n", (x<<mi->b) + i);
         }
 	}
-	if (!(mi->flag & MM_I_NO_SEQ))
-		fwrite(mi->S, 4, (sum_len + 7) / 8, fp);
+
 	fflush(fp);
 }
 
 mm_idx_t *mm_idx_load(FILE *fp)
 {
 	char magic[4];
-	uint32_t x[5], i;
-	uint64_t sum_len = 0;
+	uint32_t x[4], i;
 	mm_idx_t *mi;
 
 	if (fread(magic, 1, 4, fp) != 4) return 0;
 	if (strncmp(magic, MM_IDX_MAGIC, 4) != 0) return 0;
-	if (fread(x, 4, 5, fp) != 5) return 0;
-	mi = mm_idx_init(x[0], x[1], x[2], x[4]);
-	mi->n_seq = x[3];
-	mi->seq = (mm_idx_seq_t*)kcalloc(mi->km, mi->n_seq, sizeof(mm_idx_seq_t));
-	for (i = 0; i < mi->n_seq; ++i) {
-		uint8_t l;
-		mm_idx_seq_t *s = &mi->seq[i];
-		fread(&l, 1, 1, fp);
-		if (l) {
-			s->name = (char*)kmalloc(mi->km, l + 1);
-			fread(s->name, 1, l, fp);
-			s->name[l] = 0;
-		}
-		fread(&s->len, 4, 1, fp);
-		s->offset = sum_len;
-		sum_len += s->len;
-	}
+	if (fread(x, 4, 4, fp) != 4) return 0;
+	mi = mm_idx_init(x[0], x[1], x[2], x[3]);
+
 	for (i = 0; i < 1<<mi->b; ++i) {
 		mm_idx_bucket_t *b = &mi->B[i];
 		uint32_t j, size;
@@ -582,18 +505,15 @@ mm_idx_t *mm_idx_load(FILE *fp)
 		kh_resize(idx, h, size);
 		for (j = 0; j < size; ++j) {
 			uint64_t x;
-			bwtintv_t y;
+			bwtintv_x_t y;
 			int absent;
 			fread(&x, 8, 1, fp);
-			fread(&y, sizeof(bwtintv_t), 1, fp);
+			fread(&y, sizeof(bwtintv_x_t), 1, fp);
 			k = kh_put(idx, h, x, &absent);
 			assert(absent);
 			kh_val(h, k) = y;
+			LOG(stderr, "mm_idx_load: %lx\n", (x<<mi->b) + i);
 		}
-	}
-	if (!(mi->flag & MM_I_NO_SEQ)) {
-		mi->S = (uint32_t*)malloc((sum_len + 7) / 8 * 4);
-		fread(mi->S, 4, (sum_len + 7) / 8, fp);
 	}
 	return mi;
 }

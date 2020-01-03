@@ -50,11 +50,11 @@ extern "C" {
 #endif
 
 // emulate 128-bit integers and arrays
-//typedef struct { uint64_t x, y; } mm128_t;
-//typedef struct { size_t n, m; mm128_t *a; } mm128_v; // 表示128bit整型的vector，n表示数组的元素的数目，m表示数组capacity，a指向数组。每个元素用来表示一个minimizer。
+typedef struct { uint64_t x, y; } mm128_t;
+typedef struct { size_t n, m; mm128_t *a; } mm128_v; // 表示128bit整型的vector，n表示数组的元素的数目，m表示数组capacity，a指向数组。每个元素用来表示一个minimizer。
 
-typedef struct { uint64_t x; bwtintv_t y; } mm320_t; // 新型的哈希表的键值对
-typedef struct { size_t n, m; mm320_t *a; } mm320_v;
+typedef struct { uint64_t x; uint64_t y[3]; } mm256_t; // 新型的哈希表的键值对
+typedef struct { size_t n, m; mm256_t *a; } mm256_v;
 
 // minimap2 index
 typedef struct {

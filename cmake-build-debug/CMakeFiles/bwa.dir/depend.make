@@ -266,6 +266,7 @@ CMakeFiles/bwa.dir/mmp2_index.c.o: ../mmp2_kthread.h
 CMakeFiles/bwa.dir/mmp2_index.c.o: ../mmp2_kvec.h
 CMakeFiles/bwa.dir/mmp2_index.c.o: ../mmp2_minimap.h
 CMakeFiles/bwa.dir/mmp2_index.c.o: ../mmp2_mmpriv.h
+CMakeFiles/bwa.dir/mmp2_index.c.o: ../utils.h
 
 CMakeFiles/bwa.dir/mmp2_kalloc.c.o: ../mmp2_kalloc.c
 CMakeFiles/bwa.dir/mmp2_kalloc.c.o: ../mmp2_kalloc.h
@@ -292,6 +293,7 @@ CMakeFiles/bwa.dir/mmp2_sketch.c.o: ../mmp2_kvec.h
 CMakeFiles/bwa.dir/mmp2_sketch.c.o: ../mmp2_minimap.h
 CMakeFiles/bwa.dir/mmp2_sketch.c.o: ../mmp2_mmpriv.h
 CMakeFiles/bwa.dir/mmp2_sketch.c.o: ../mmp2_sketch.c
+CMakeFiles/bwa.dir/mmp2_sketch.c.o: ../utils.h
 
 CMakeFiles/bwa.dir/pemerge.c.o: ../bntseq.h
 CMakeFiles/bwa.dir/pemerge.c.o: ../bwa.h
