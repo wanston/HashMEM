@@ -168,18 +168,18 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
         assert((kmer_intv.info >> 32) <= (uint32_t)kmer_intv.info);
         kv_push(bwtintv_t, a->intv_v, kmer_intv);
         // 检查当前kmer不在已有的SMEM中。TODO: 更新检查的策略
-        int good = 1;
-        for(j = 0; j < a->mem.n; ++j){
-            uint32_t left = kmer_intv.info >> 32;
-            uint32_t right = (uint32_t)kmer_intv.info;
-            if(left >= a->mem.a[j].info>>32 && right <= (uint32_t)a->mem.a[j].info){
-                good = 0;
-                break;
-            }
-        }
-        if(!good) continue;
+//        int good = 1;
+//        for(j = 0; j < a->mem.n; ++j){
+//            uint32_t left = kmer_intv.info >> 32;
+//            uint32_t right = (uint32_t)kmer_intv.info;
+//            if(left >= a->mem.a[j].info>>32 && right <= (uint32_t)a->mem.a[j].info){
+//                good = 0;
+//                break;
+//            }
+//        }
+//        if(!good) continue;
         // TODO: 翻转a->mem中的东西
-        bwt_smem2(bwt, len, seq, start_width, &a->mem, a->tmpv, kmer_intv); // 计算得到的SMEM追加在a->mem中
+        bwt_smem2(bwt, len, seq, 2, &a->mem, a->tmpv, kmer_intv); // 计算得到的SMEM追加在a->mem中
     }
     PROFILE_END(seed_pass1);
 //
