@@ -120,5 +120,5 @@ static inline uint64_t hash_64(uint64_t key)
 #define HashMEM_PASS2 2
 #define NO_PASS2 3
 
-#define PASS2 HashMEM_PASS2
+#define PASS2 KMER_PASS2
 #endif

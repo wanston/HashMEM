@@ -182,16 +182,16 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
         bwt_smem2(bwt, len, seq, start_width, &a->mem, a->tmpv, kmer_intv); // 计算得到的SMEM追加在a->mem中
     }
     PROFILE_END(seed_pass1);
-
-    for(i=0; i<a->intv_v.n; i++){
-        bwtintv_t *p = &a->intv_v.a[i];
-        LOG(stderr, "kmer intv: %d x: %ld %ld %ld info: %ld %u\n", i, p->x[0], p->x[1], p->x[2], p->info >> 32, (uint32_t)p->info);
-    }
-
-    for(i=0; i<a->mem.n; i++){
-        bwtintv_t *p = &a->mem.a[i];
-        LOG(stderr, "pass1 mem: %d x: %ld %ld %ld info: %ld %u\n", i, p->x[0], p->x[1], p->x[2], p->info >> 32, (uint32_t)p->info);
-    }
+//
+//    for(i=0; i<a->intv_v.n; i++){
+//        bwtintv_t *p = &a->intv_v.a[i];
+//        LOG(stderr, "kmer intv: %d x: %ld %ld %ld info: %ld %u\n", i, p->x[0], p->x[1], p->x[2], p->info >> 32, (uint32_t)p->info);
+//    }
+//
+//    for(i=0; i<a->mem.n; i++){
+//        bwtintv_t *p = &a->mem.a[i];
+//        LOG(stderr, "pass1 mem: %d x: %ld %ld %ld info: %ld %u\n", i, p->x[0], p->x[1], p->x[2], p->info >> 32, (uint32_t)p->info);
+//    }
 
 	// second pass: find MEMs inside a long SMEM
 	PROFILE_START(seed_pass2);
