@@ -196,11 +196,11 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
 	// second pass: find MEMs inside a long SMEM
 	PROFILE_START(seed_pass2);
 #if PASS2 == KMER_PASS2
-    for(i = 0; i<a->intv_v.n; i++){
-        bwtintv_t *p = &a->intv_v.a[i];
-        kv_push(bwtintv_t, a->mem, *p);
-        LOG(stderr, "pass2 mem: %d x: %ld %ld %ld info: %u %u\n", i, p->x[0], p->x[1], p->x[2], (uint32_t)(p->info>>32), (uint32_t)p->info);
-    }
+//    for(i = 0; i<a->intv_v.n; i++){
+//        bwtintv_t *p = &a->intv_v.a[i];
+//        kv_push(bwtintv_t, a->mem, *p);
+//        LOG(stderr, "pass2 mem: %d x: %ld %ld %ld info: %u %u\n", i, p->x[0], p->x[1], p->x[2], (uint32_t)(p->info>>32), (uint32_t)p->info);
+//    }
 #elif PASS2 == HashMEM_PASS2
 	old_n = a->mem.n;
 	for (k = 0; k < old_n; ++k) { //
