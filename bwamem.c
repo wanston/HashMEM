@@ -151,6 +151,10 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
     a->kmer_v.n = 0;
     a->intv_v.n = 0;
 
+
+
+    long avg_sum = 0;
+
     // first pass: find all SMEMs
 	PROFILE_START(seed_pass1);
     mm_sketch_info_uint8(NULL, seq, len, mi->w, mi->k, 0, &a->kmer_v);
@@ -167,6 +171,12 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
         kmer_intv.info &= ((uint64_t)1<<63) - 1;
         assert((kmer_intv.info >> 32) <= (uint32_t)kmer_intv.info);
         kv_push(bwtintv_t, a->intv_v, kmer_intv);
+
+        avg_sum += kmer_intv.x[2];
+
+
+
+
         // 检查当前kmer不在已有的SMEM中。TODO: 更新检查的策略
 //        int good = 1;
 //        for(j = 0; j < a->mem.n; ++j){
@@ -181,6 +191,9 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
         // TODO: 翻转a->mem中的东西
         bwt_smem2(bwt, len, seq, 2, &a->mem, a->tmpv, kmer_intv); // 计算得到的SMEM追加在a->mem中
     }
+
+    fprintf(stderr, "%f %d\n", (float)avg_sum / (float)a->kmer_v.n, a->kmer_v.n);
+
     PROFILE_END(seed_pass1);
 //
 //    for(i=0; i<a->intv_v.n; i++){
