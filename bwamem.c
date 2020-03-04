@@ -192,7 +192,7 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
         bwt_smem2(bwt, len, seq, 2, &a->mem, a->tmpv, kmer_intv); // 计算得到的SMEM追加在a->mem中
     }
 
-    fprintf(stderr, "%f %d\n", (float)avg_sum / (float)a->kmer_v.n, a->kmer_v.n);
+//    fprintf(stderr, "%f %d\n", (float)avg_sum / (float)a->kmer_v.n, a->kmer_v.n);
 
     PROFILE_END(seed_pass1);
 //
