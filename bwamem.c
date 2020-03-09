@@ -128,6 +128,8 @@ static void smem_aux_destroy(smem_aux_t *a)
     free(a);
 }
 
+extern atomic_ulong total_seed_num;
+extern atomic_ulong filted_seed_num;
 
 /**
  * seed的过程，从read中找到精确匹配的mem。该函数处理一条read。
@@ -174,9 +176,6 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
 
         avg_sum += kmer_intv.x[2];
 
-
-
-
         // 检查当前kmer不在已有的SMEM中。TODO: 更新检查的策略
         int good = 1;
         for(j = 0; j < a->mem.n; ++j){
@@ -189,9 +188,11 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
         }
         if(!good) continue;
         // TODO: 翻转a->mem中的东西
+//        size_t before = a->mem.n;
         bwt_smem2(bwt, len, seq, 2, &a->mem, a->tmpv, kmer_intv); // 计算得到的SMEM追加在a->mem中
     }
 
+//    atomic_fetch_add(&total_seed_num, a->mem.n);
 //    fprintf(stderr, "%f %d\n", (float)avg_sum / (float)a->kmer_v.n, a->kmer_v.n);
 
     PROFILE_END(seed_pass1);
@@ -209,10 +210,15 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
 	// second pass: find MEMs inside a long SMEM
 	PROFILE_START(seed_pass2);
 #if PASS2 == KMER_PASS2
+	int pre_right = 0;
     for(i = 0; i<a->intv_v.n; i++){
         bwtintv_t *p = &a->intv_v.a[i];
         if(p->x[2] <= 10){
-            kv_push(bwtintv_t, a->mem, *p);
+            if((p->info >> 32) > pre_right){
+                pre_right = (int)p->info;
+                kv_push(bwtintv_t, a->mem, *p);
+                atomic_fetch_add(&total_seed_num, p->x[2]);
+            }
         }
         LOG(stderr, "pass2 mem: %d x: %ld %ld %ld info: %u %u\n", i, p->x[0], p->x[1], p->x[2], (uint32_t)(p->info>>32), (uint32_t)p->info);
     }
@@ -306,25 +312,25 @@ KBTREE_INIT(chn, mem_chain_t, chain_cmp)
 // return 1 if the seed is merged into the chain
 static int test_and_merge(const mem_opt_t *opt, int64_t l_pac, mem_chain_t *c, const mem_seed_t *p, int seed_rid)
 {
-	int64_t qend, rend, x, y;
-	const mem_seed_t *last = &c->seeds[c->n-1];
-	qend = last->qbeg + last->len;
-	rend = last->rbeg + last->len;
-	if (seed_rid != c->rid) return 0; // different chr; request a new chain
-	if (p->qbeg >= c->seeds[0].qbeg && p->qbeg + p->len <= qend && p->rbeg >= c->seeds[0].rbeg && p->rbeg + p->len <= rend)
-		return 1; // contained seed; do nothing
-	if ((last->rbeg < l_pac || c->seeds[0].rbeg < l_pac) && p->rbeg >= l_pac) return 0; // don't chain if on different strand
-	x = p->qbeg - last->qbeg; // always non-negtive
-	y = p->rbeg - last->rbeg;
-	if (y >= 0 && x - y <= opt->w && y - x <= opt->w && x - last->len < opt->max_chain_gap && y - last->len < opt->max_chain_gap) { // grow the chain
-		if (c->n == c->m) {
-			c->m <<= 1;
-			c->seeds = realloc(c->seeds, c->m * sizeof(mem_seed_t));
-		}
-		c->seeds[c->n++] = *p;
-		return 1;
-	}
-	return 0; // request to add a new chain
+    int64_t qend, rend, x, y;
+    const mem_seed_t *last = &c->seeds[c->n-1];
+    qend = last->qbeg + last->len;
+    rend = last->rbeg + last->len;
+    if (seed_rid != c->rid) return 0; // different chr; request a new chain
+    if (p->qbeg >= c->seeds[0].qbeg && p->qbeg + p->len <= qend && p->rbeg >= c->seeds[0].rbeg && p->rbeg + p->len <= rend)
+        return 2; // contained seed; do nothing
+    if ((last->rbeg < l_pac || c->seeds[0].rbeg < l_pac) && p->rbeg >= l_pac) return 0; // don't chain if on different strand
+    x = p->qbeg - last->qbeg; // always non-negtive
+    y = p->rbeg - last->rbeg;
+    if (y >= 0 && x - y <= opt->w && y - x <= opt->w && x - last->len < opt->max_chain_gap && y - last->len < opt->max_chain_gap) { // grow the chain
+        if (c->n == c->m) {
+            c->m <<= 1;
+            c->seeds = realloc(c->seeds, c->m * sizeof(mem_seed_t));
+        }
+        c->seeds[c->n++] = *p;
+        return 1;
+    }
+    return 0; // request to add a new chain
 }
 
 int mem_chain_weight(const mem_chain_t *c)
@@ -419,7 +425,12 @@ mem_chain_v mem_chain(const mem_opt_t *opt, const bwt_t *bwt, const bntseq_t *bn
 			if (rid < 0) continue; // bridging multiple reference sequences or the forward-reverse boundary; TODO: split the seed; don't discard it!!!
 			if (kb_size(tree)) {
 				kb_intervalp(chn, tree, &tmp, &lower, &upper); // find the closest chain
-				if (!lower || !test_and_merge(opt, l_pac, lower, &s, rid)) to_add = 1;
+                int merge_r = 0;
+                if (!lower || !(merge_r = test_and_merge(opt, l_pac, lower, &s, rid))) // test_and_merge是测试种子s能否merge到lower链中，能的话就merge然后返回-1，不能返回0。
+                    to_add = 1; // 如果种子s的pos小于当前所有链的pos 或者 种子可以merge到其pos右边的chain中
+                if(merge_r == 2){
+                    atomic_fetch_add(&filted_seed_num, 1);
+                }
 			} else to_add = 1;
 			if (to_add) { // add the seed as a new chain
 				tmp.n = 1; tmp.m = 4;

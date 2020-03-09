@@ -25,6 +25,9 @@ PROFILE_INIT(seed_pass3);
 //
 //FILE *mem_files[PROFILE_THREAD_NUM];
 
+atomic_ulong total_seed_num;
+atomic_ulong filted_seed_num;
+
 int bwa_fa2pac(int argc, char *argv[]);
 int bwa_pac2bwt(int argc, char *argv[]);
 int bwa_bwtupdate(int argc, char *argv[]);
@@ -82,6 +85,9 @@ int main(int argc, char *argv[])
 //    atomic_store(&pass2_all_mems_num, 0);
 //    atomic_store(&pass1_valid_mems_num, 0);
 //    atomic_store(&pass2_valid_mems_num, 0);
+	atomic_store(&total_seed_num, 0);
+	atomic_store(&filted_seed_num, 0);
+
 
 	extern char *bwa_pg;
 	int i, ret;
@@ -130,6 +136,9 @@ int main(int argc, char *argv[])
 	PROFILE_REPORT(seed_pass1);
 	PROFILE_REPORT(seed_pass2);
 	PROFILE_REPORT(seed_pass3);
+
+	fprintf(stderr, "total seed num %lu %lu\n", atomic_load(&total_seed_num), atomic_load(&filted_seed_num));
+
 
 //    fprintf(stderr, "pass1 mem %lu %lu\n", atomic_load(&pass1_valid_mems_num), atomic_load(&pass1_all_mems_num));
 //    fprintf(stderr, "pass2 mem %lu %lu\n", atomic_load(&pass2_valid_mems_num), atomic_load(&pass2_all_mems_num));

@@ -331,6 +331,8 @@ stdint.h
 -
 limits.h
 -
+stdatomic.h
+-
 utils.h
 /home/wt/Project/bwa-HashMEM/utils.h
 bwt.h
