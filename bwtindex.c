@@ -375,7 +375,7 @@ int bwa_idx_build_mmi(const char *fa, const char *prefix, int algo_type, int blo
     mm_idx_reader_t *idx_rdr;
     mm_idxopt_t ipt;
     mm_idx_t *mi;
-    int n_threads = 1;
+    int n_threads = 8;
 
     ipt.batch_size = 4000000000; // TODO：观察minimap2如何做的
     ipt.bucket_bits = 14;
