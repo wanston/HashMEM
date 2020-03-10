@@ -474,9 +474,10 @@ void mm_idx_dump(FILE *fp, const mm_idx_t *mi)
 			if (!kh_exist(h, k)) continue;
 			x = kh_key(h, k);
 			y = kh_val(h, k);
-			fwrite(&x, 8, 1, fp);
-			fwrite(&y, sizeof(bwtintv_x_t), 1, fp);
-            LOG(stderr, "mm_idx_dump: %lx\n", (x<<mi->b) + i);
+			fwrite(&x, 8, 1,  fp);
+			fwrite(&y, 12, 1, fp);
+//			fwrite(&y, sizeof(bwtintv_x_t), 1, fp);
+			LOG(stderr, "mm_idx_dump: %lx\n", (x<<mi->b) + i);
         }
 	}
 
