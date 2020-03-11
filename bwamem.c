@@ -134,6 +134,8 @@ extern atomic_ulong pass1_mem_num;
 extern atomic_ulong pass1_seed_num;
 extern atomic_ulong pass2_mem_num;
 extern atomic_ulong pass2_seed_num;
+extern atomic_ulong pass1_all_mems_num;
+
 /**
  * seed的过程，从read中找到精确匹配的mem。该函数处理一条read。
  *
@@ -161,7 +163,7 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
     long avg_sum = 0;
 
     // first pass: find all SMEMs
-    PROFILE_START(seed_pass1);
+
     mm_sketch_info_uint8(NULL, seq, len, mi->w, mi->k, 0, &a->kmer_v);
 
     int right_border = 0;
@@ -178,7 +180,10 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
         assert((kmer_intv.info >> 32) <= (uint32_t)kmer_intv.info);
         kv_push(bwtintv_t, a->intv_v, kmer_intv);
 
+
+        PROFILE_START(seed_pass1);
         int mid = ((kmer_intv.info>>32) + ((int)kmer_intv.info) ) / 2;
+
 
         if(mid > right_border){
             if (seq[mid] < 4) {
@@ -192,12 +197,14 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
                         atomic_fetch_add(&pass1_mem_num, 1);
                     }
                 }
+                atomic_fetch_add(&pass1_all_mems_num, a->mem1.n);
             }
         }
+        PROFILE_END(seed_pass1);
+
     }
 
 //    atomic_fetch_add(&total_seed_num, a->mem.n);
-    PROFILE_END(seed_pass1);
 
 
     // second pass: find MEMs inside a long SMEM

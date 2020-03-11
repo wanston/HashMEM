@@ -18,9 +18,10 @@ PROFILE_INIT(seed_pass1);
 PROFILE_INIT(seed_pass2);
 PROFILE_INIT(seed_pass3);
 
-//atomic_ulong pass1_all_mems_num;
-//atomic_ulong pass2_all_mems_num;
+atomic_ulong pass1_all_mems_num;
 //atomic_ulong pass1_valid_mems_num;
+
+//atomic_ulong pass2_all_mems_num;
 //atomic_ulong pass2_valid_mems_num;
 //
 //FILE *mem_files[PROFILE_THREAD_NUM];
@@ -87,7 +88,7 @@ static int usage()
 
 int main(int argc, char *argv[])
 {
-//    atomic_store(&pass1_all_mems_num, 0);
+    atomic_store(&pass1_all_mems_num, 0);
 //    atomic_store(&pass2_all_mems_num, 0);
 //    atomic_store(&pass1_valid_mems_num, 0);
 //    atomic_store(&pass2_valid_mems_num, 0);
@@ -150,7 +151,7 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "total seed num %lu %lu\n", atomic_load(&total_seed_num), atomic_load(&filted_seed_num));
 
 
-//    fprintf(stderr, "pass1 mem %lu %lu\n", atomic_load(&pass1_valid_mems_num), atomic_load(&pass1_all_mems_num));
+    fprintf(stderr, "pass1 all mem %lu \n", atomic_load(&pass1_all_mems_num));
 //    fprintf(stderr, "pass2 mem %lu %lu\n", atomic_load(&pass2_valid_mems_num), atomic_load(&pass2_all_mems_num));
 
 //    for(i=0; i<PROFILE_THREAD_NUM; i++){
