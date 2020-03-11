@@ -398,7 +398,9 @@ int bwt_smem1(const bwt_t *bwt, int len, const uint8_t *q, int x, int min_intv, 
  * @param kmer_intv
  * @return
  */
-extern atomic_ulong total_seed_num;
+//extern atomic_ulong total_seed_num;
+extern atomic_ulong pass1_mem_num;
+extern atomic_ulong pass1_seed_num;
 
 int bwt_smem2(const bwt_t *bwt, int len, const uint8_t *q, int min_intv, bwtintv_v *mem, bwtintv_v *tmpvec[2], bwtintv_t kmer_intv)
 {
@@ -496,7 +498,8 @@ int bwt_smem2(const bwt_t *bwt, int len, const uint8_t *q, int min_intv, bwtintv
                         ik = *p;
                         ik.info = ((uint64_t)(i + 1)<<32) + (uint32_t)ik.info;
                         kv_push(bwtintv_t, *mem, ik);
-                        atomic_fetch_add(&total_seed_num, ik.x[2]);
+                        atomic_fetch_add(&pass1_seed_num, ik.x[2]);
+                        atomic_fetch_add(&pass1_mem_num, 1);
                     }
                 } // otherwise the match is contained in another longer match
             } else if (curr->n == 0 || ok[c].x[2] != curr->a[curr->n-1].x[2]) {

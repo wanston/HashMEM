@@ -130,7 +130,10 @@ static void smem_aux_destroy(smem_aux_t *a)
 
 extern atomic_ulong total_seed_num;
 extern atomic_ulong filted_seed_num;
-
+extern atomic_ulong pass1_mem_num;
+extern atomic_ulong pass1_seed_num;
+extern atomic_ulong pass2_mem_num;
+extern atomic_ulong pass2_seed_num;
 /**
  * seed的过程，从read中找到精确匹配的mem。该函数处理一条read。
  *
@@ -217,7 +220,8 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
             if((p->info >> 32) > pre_right){
                 pre_right = (int)p->info;
                 kv_push(bwtintv_t, a->mem, *p);
-                atomic_fetch_add(&total_seed_num, p->x[2]);
+                atomic_fetch_add(&pass2_seed_num, p->x[2]);
+                atomic_fetch_add(&pass2_mem_num, 1);
             }
         }
         LOG(stderr, "pass2 mem: %d x: %ld %ld %ld info: %u %u\n", i, p->x[0], p->x[1], p->x[2], (uint32_t)(p->info>>32), (uint32_t)p->info);
