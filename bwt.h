@@ -67,6 +67,13 @@ typedef struct {
 
 typedef struct { size_t n, m; bwtintv_t *a; } bwtintv_v; // vector结构，n表示size，m表示capacity，a则是指向数组
 
+typedef struct {
+	bwtintv_t e1;
+	bwtintv_t e2;
+} bwtintv_t2;
+
+typedef struct { size_t n, m; bwtintv_t2 *a; } bwtintv_v2;
+
 /* For general OCC_INTERVAL, the following is correct:
 #define bwt_bwt(b, k) ((b)->bwt[(k)/OCC_INTERVAL * (OCC_INTERVAL/(sizeof(uint32_t)*8/2) + sizeof(bwtint_t)/4*4) + sizeof(bwtint_t)/4*4 + (k)%OCC_INTERVAL/16])
 #define bwt_occ_intv(b, k) ((b)->bwt + (k)/OCC_INTERVAL * (OCC_INTERVAL/(sizeof(uint32_t)*8/2) + sizeof(bwtint_t)/4*4)

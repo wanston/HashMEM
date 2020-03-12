@@ -314,8 +314,104 @@ static void bwt_reverse_intvs(bwtintv_v *p)
  * @param tmpvec
  * @return
  */
-// NOTE: $max_intv is not currently used in BWA-MEM
+//// NOTE: $max_intv is not currently used in BWA-MEM
 int bwt_smem1a(const bwt_t *bwt, int len, const uint8_t *q, int x, int min_intv, uint64_t max_intv, bwtintv_v *mem, bwtintv_v *tmpvec[2])
+{
+	int i, j, c, ret;
+	bwtintv_t ik, ok[4]; // 我要存储的是kv_push的结果
+	bwtintv_v a[2], *prev, *curr, *swap;
+
+	mem->n = 0;
+	if (q[x] > 3) return x + 1;
+	if (min_intv < 1) min_intv = 1; // the interval size should be at least 1
+	kv_init(a[0]); kv_init(a[1]);
+	prev = tmpvec && tmpvec[0]? tmpvec[0] : &a[0]; // use the temporary vector if provided
+	curr = tmpvec && tmpvec[1]? tmpvec[1] : &a[1];
+	bwt_set_intv(bwt, q[x], ik); // the initial interval of a single base，把碱基q[x]对应的interval存储在ik中。
+	ik.info = x + 1;
+
+	for (i = x + 1, curr->n = 0; i < len; ++i) { // forward search
+		if (ik.x[2] < max_intv) { // an interval small enough
+			kv_push(bwtintv_t, *curr, ik);
+			break;
+		} else if (q[i] < 4) { // an A/C/G/T base
+			c = 3 - q[i]; // complement of q[i], 因为是forward extention，所以用互补碱基
+			bwt_extend(bwt, &ik, ok, 0);
+			if (ok[c].x[2] != ik.x[2]) { // change of the interval size
+				kv_push(bwtintv_t, *curr, ik);
+				if (ok[c].x[2] < min_intv) break; // the interval size is too small to be extended further
+			}
+			ik = ok[c]; ik.info = i + 1;
+		} else { // an ambiguous base
+			kv_push(bwtintv_t, *curr, ik);
+			break; // always terminate extension at an ambiguous base; in this case, i<len always stands
+		}
+	}
+	if (i == len) kv_push(bwtintv_t, *curr, ik); // push the last interval if we reach the end
+	bwt_reverse_intvs(curr); // s.t. smaller intervals (i.e. longer matches) visited first
+	ret = curr->a[0].info; // this will be the returned value
+	swap = curr; curr = prev; prev = swap;
+
+
+	bwtintv_v2 prev2, curr2, swap2;
+	kv_init(prev2);
+	kv_init(curr2);
+
+	for(i=0; i<prev->n; i++){
+		bwtintv_t2 tmp;
+		tmp.e1 = prev->a[i];
+		tmp.e2.info = 0;
+
+		kv_push(bwtintv_t2, prev2, tmp);
+	}
+
+	for (i = x - 1; i >= -1; --i) { // backward search for MEMs
+		c = i < 0? -1 : q[i] < 4? q[i] : -1; // c==-1 if i<0 or q[i] is an ambiguous base
+		for (j = 0, curr2.n = 0; j < prev2.n; ++j) {
+			bwtintv_t2 *p = &prev2.a[j];
+			if (c >= 0 && ik.x[2] >= max_intv) bwt_extend(bwt, &p->e1, ok, 1);
+			if (c < 0 || ik.x[2] < max_intv || ok[c].x[2] < min_intv) { // keep the hit if reaching the beginning or an ambiguous base or the intv is small enough
+				if (curr2.n == 0) { // test curr->n>0 to make sure there are no longer matches
+					if (mem->n == 0 || i + 1 < mem->a[mem->n-1].info>>32) { // skip contained matches
+                        if(p->e2.info != 0 && (p->e2.info >> 32)-(i+1)<5 && (uint32_t)p->e2.info-(p->e2.info>>32) >= 19)
+                            kv_push(bwtintv_t, *mem, p->e2);
+
+					    ik = p->e1;
+						ik.info = ((uint64_t)(i + 1)<<32) + (uint32_t)ik.info;
+						kv_push(bwtintv_t, *mem, ik);
+					}
+				} // otherwise the match is contained in another longer match
+			} else if (curr2.n == 0 || ok[c].x[2] != curr2.a[curr2.n-1].e1.x[2]) {
+                bwtintv_t2 tmp;
+
+
+                if(ok[c].x[2] < p->e1.x[2]){
+			        tmp.e2 = p->e1;
+			    } else{
+                    tmp.e2 = p->e2;
+                }
+
+				ok[c].info = (uint32_t)p->e1.info;
+				ok[c].info |= (uint64_t)(i+1)<<32;
+//				kv_push(bwtintv_t, *curr, ok[c]);
+
+				tmp.e1 = ok[c];
+				kv_push(bwtintv_t2, curr2, tmp);
+			}
+		}
+		if (curr2.n == 0) break;
+		swap2 = curr2; curr2 = prev2; prev2 = swap2;
+	}
+	bwt_reverse_intvs(mem); // s.t. sorted by the start coordinate
+
+	if (tmpvec == 0 || tmpvec[0] == 0) free(a[0].a);
+	if (tmpvec == 0 || tmpvec[1] == 0) free(a[1].a);
+    free(prev2.a);
+    free(curr2.a);
+	return ret;
+}
+
+int bwt_smem1b(const bwt_t *bwt, int len, const uint8_t *q, int x, int min_intv, uint64_t max_intv, bwtintv_v *mem, bwtintv_v *tmpvec[2])
 {
 	int i, j, c, ret;
 	bwtintv_t ik, ok[4]; // 我要存储的是kv_push的结果

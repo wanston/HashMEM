@@ -170,6 +170,7 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
     for(lo=0, hi=0; hi<a->kmer_v.n; hi++){
         bwtintv_t kmer_intv;
         bwtintv_x_t intv_x = mm_idx_get(mi, a->kmer_v.a[hi].x >> 8);
+
         if(intv_x.x[2] == 0) continue;
         kmer_intv.x[0] = intv_x.x[0]; kmer_intv.x[1] = intv_x.x[1]; kmer_intv.x[2] = intv_x.x[2];
         kmer_intv.info = a->kmer_v.a[hi].y;
