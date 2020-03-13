@@ -128,14 +128,15 @@ static void smem_aux_destroy(smem_aux_t *a)
     free(a);
 }
 
-extern atomic_ulong total_seed_num;
+//extern atomic_ulong total_seed_num;
 extern atomic_ulong filted_seed_num;
 extern atomic_ulong pass1_mem_num;
 extern atomic_ulong pass1_seed_num;
 extern atomic_ulong pass2_mem_num;
 extern atomic_ulong pass2_seed_num;
 extern atomic_ulong pass1_all_mems_num;
-
+extern atomic_ulong smem_call_count;
+extern atomic_ulong smem_valid_count;
 /**
  * seed的过程，从read中找到精确匹配的mem。该函数处理一条read。
  *
@@ -163,32 +164,42 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
     long avg_sum = 0;
 
     // first pass: find all SMEMs
+    PROFILE_START(seed_pass1);
 
     mm_sketch_info_uint8(NULL, seq, len, mi->w, mi->k, 0, &a->kmer_v);
 
     int right_border = 0;
     for(lo=0, hi=0; hi<a->kmer_v.n; hi++){
-        bwtintv_t kmer_intv;
-        bwtintv_x_t intv_x = mm_idx_get(mi, a->kmer_v.a[hi].x >> 8);
+        uint8_t exist = mm_idx_get(mi, a->kmer_v.a[hi].x >> 8);
 
-        if(intv_x.x[2] == 0) continue;
-        kmer_intv.x[0] = intv_x.x[0]; kmer_intv.x[1] = intv_x.x[1]; kmer_intv.x[2] = intv_x.x[2];
-        kmer_intv.info = a->kmer_v.a[hi].y;
-        if((kmer_intv.info >> 63) == 1){ // 如果kmer是经过反转的
-            swap(kmer_intv.x[0], kmer_intv.x[1]);
-        }
-        kmer_intv.info &= ((uint64_t)1<<63) - 1;
-        assert((kmer_intv.info >> 32) <= (uint32_t)kmer_intv.info);
-        kv_push(bwtintv_t, a->intv_v, kmer_intv);
+        if(exist == 0) continue;
+        uint64_t info = a->kmer_v.a[hi].y;
+        info &= ((uint64_t)1<<63) - 1;
+        assert((info >> 32) <= (uint32_t)info);
+        uint32_t pos = ((uint32_t)(info>>32) + (uint32_t)info) / 2;
 
 
-        PROFILE_START(seed_pass1);
-        int mid = ((kmer_intv.info>>32) + ((int)kmer_intv.info) ) / 2;
+//        if(intv_x.x[2] == 0) continue;
+//        kmer_intv.x[0] = intv_x.x[0]; kmer_intv.x[1] = intv_x.x[1]; kmer_intv.x[2] = intv_x.x[2];
+//        kmer_intv.info = a->kmer_v.a[hi].y;
+//        if((kmer_intv.info >> 63) == 1){ // 如果kmer是经过反转的
+//            swap(kmer_intv.x[0], kmer_intv.x[1]);
+//        }
+//        kmer_intv.info &= ((uint64_t)1<<63) - 1;
+//        assert((kmer_intv.info >> 32) <= (uint32_t)kmer_intv.info);
 
 
-        if(mid > right_border){
-            if (seq[mid] < 4) {
-                right_border = bwt_smem1(bwt, len, seq, mid, 1, &a->mem1, a->tmpv);
+//        bwtintv_t kmer_intv;
+//        kmer_intv.info = pos;
+//        kv_push(bwtintv_t, a->intv_v, kmer_intv);
+
+//        int mid = ((kmer_intv.info>>32) + ((int)kmer_intv.info) ) / 2;
+
+        if(pos > right_border){
+            if (seq[pos] < 4) {
+                atomic_fetch_add(&smem_call_count, 1);
+                right_border = bwt_smem1(bwt, len, seq, pos, 1, &a->mem1, a->tmpv);
+                int smem_valid = 0;
                 for (i = 0; i < a->mem1.n; ++i) {
                     bwtintv_t *p = &a->mem1.a[i];
                     int slen = (uint32_t)p->info - (p->info>>32); // seed length
@@ -196,20 +207,39 @@ static void mem_collect_intv(const mem_opt_t *opt, const bwt_t *bwt, const mm_id
                         kv_push(bwtintv_t, a->mem, *p);
                         atomic_fetch_add(&pass1_seed_num, p->x[2]);
                         atomic_fetch_add(&pass1_mem_num, 1);
+                        smem_valid = 1;
                     }
                 }
+                if(smem_valid == 1)
+                    atomic_fetch_add(&smem_valid_count, 1);
                 atomic_fetch_add(&pass1_all_mems_num, a->mem1.n);
             }
+        }else{
+            PROFILE_START(seed_pass2);
+            bwtintv_t m;
+            int begin = (int)(info >> 32);
+            if(begin > x){
+                x = bwt_seed_strategy1(bwt, len, seq, x, opt->min_seed_len, opt->max_mem_intv, &m);
+                if (m.x[2] > 0 && m.x[2] <= 10) {
+                    kv_push(bwtintv_t, a->mem, m);
+                    atomic_fetch_add(&pass2_seed_num, m.x[2]);
+                    atomic_fetch_add(&pass2_mem_num, 1);
+                }
+            }
+            PROFILE_END(seed_pass2);
         }
-        PROFILE_END(seed_pass1);
-
     }
+    PROFILE_END(seed_pass1);
 
 //    atomic_fetch_add(&total_seed_num, a->mem.n);
 
 
     // second pass: find MEMs inside a long SMEM
     PROFILE_START(seed_pass2);
+
+
+
+
 #if PASS2 == KMER_PASS2
 //    int pre_right = 0;
 //    for(i = 0; i<a->intv_v.n; i++){
@@ -517,6 +547,8 @@ void mem_print_chain(const bntseq_t *bns, mem_chain_v *chn)
 	}
 }
 
+extern atomic_ulong chain_filtered_mems_num;
+extern atomic_ulong chain_half_filtered_mems_num;
 /**
  * 获取某read比对上的所有chain
  *
@@ -560,7 +592,8 @@ mem_chain_v mem_chain(const mem_opt_t *opt, const bwt_t *bwt, const bntseq_t *bn
 		int64_t k;
 		// if (slen < opt->min_seed_len) continue; // ignore if too short or too repetitive
 		step = p->x[2] > opt->max_occ? p->x[2] / opt->max_occ : 1;
-		for (k = count = 0; k < p->x[2] && count < opt->max_occ; k += step, ++count) {
+        int filtered_seed_num_local = 0;
+        for (k = count = 0; k < p->x[2] && count < opt->max_occ; k += step, ++count) {
 			mem_chain_t tmp, *lower, *upper;
 			mem_seed_t s;
 			int rid, to_add = 0;
@@ -575,6 +608,7 @@ mem_chain_v mem_chain(const mem_opt_t *opt, const bwt_t *bwt, const bntseq_t *bn
                 if (!lower || !(merge_r = test_and_merge(opt, l_pac, lower, &s, rid))) // test_and_merge是测试种子s能否merge到lower链中，能的话就merge然后返回-1，不能返回0。
                     to_add = 1; // 如果种子s的pos小于当前所有链的pos 或者 种子可以merge到其pos右边的chain中
                 if(merge_r == 2){
+                    filtered_seed_num_local++;
                     atomic_fetch_add(&filted_seed_num, 1);
                 }
 			} else to_add = 1;
@@ -587,6 +621,15 @@ mem_chain_v mem_chain(const mem_opt_t *opt, const bwt_t *bwt, const bntseq_t *bn
 				kb_putp(chn, tree, &tmp);
 			}
 		}
+
+        if(filtered_seed_num_local == p->x[2]){
+            atomic_fetch_add(&chain_filtered_mems_num, 1);
+        }
+
+        if(filtered_seed_num_local >= p->x[2]*0.5){
+            atomic_fetch_add(&chain_half_filtered_mems_num, 1);
+        }
+
 	}
 	if (buf == 0) smem_aux_destroy(aux);
 

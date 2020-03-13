@@ -18,7 +18,7 @@
 
 #define idx_hash(a) ((a))
 #define idx_eq(a, b) ((a) == (b))
-KHASH_INIT(idx, uint64_t, bwtintv_x_t, 1, idx_hash, idx_eq)
+KHASH_INIT(idx, uint64_t, uint8_t, 1, idx_hash, idx_eq)
 typedef khash_t(idx) idxhash_t;
 
 KHASH_MAP_INIT_STR(str, uint32_t)
@@ -86,18 +86,18 @@ void mm_idx_destroy(mm_idx_t *mi)
  *  @param n            记录返回的uint64_t动态数组的大小，每个uint64_t值记录minimizer的位置信息，应该是对应mm128_t中的y。
  *  @retrun             返回的指针指向动态数组
  * */
-bwtintv_x_t mm_idx_get(const mm_idx_t *mi, uint64_t minier)
+uint8_t mm_idx_get(const mm_idx_t *mi, uint64_t minier)
 {
 	int mask = (1<<mi->b) - 1; // minimizer的哈希值的mask
 	khint_t k;
 	bwtintv_x_t ret = {0,0,0};
 	mm_idx_bucket_t *b = &mi->B[minier&mask]; //
 	idxhash_t *h = (idxhash_t*)b->h;
-	if (h == 0) return ret;
+	if (h == 0) return 0;
 	k = kh_get(idx, h, minier>>mi->b);
-	if (k == kh_end(h)) return ret;
-	ret = kh_val(h, k);
-	return ret;
+	if (k == kh_end(h)) return 0;
+//	ret = kh_val(h, k);
+	return 1;
 }
 
 /**
@@ -268,7 +268,8 @@ static void worker_post(void *g, long i, int tid)
 			uint8_t kmer_span = (uint8_t)p->x;
             bwtintv_x_t intv = get_kmer_interval(p->y[0], kmer_span, bwt);// 低kmer_span*2位存储的是kmer。其中高位表示左边的碱基，低位表示右边的碱基。
             if(intv.x[2] > 0) {
-                kh_val(h, itr) = intv; // TODO：建表和查询的数据结构需要再精简一下。
+//                kh_val(h, itr) = intv; // TODO：建表和查询的数据结构需要再精简一下。
+                kh_val(h, itr) = 1;
             }
 		}
 	}
@@ -470,13 +471,15 @@ void mm_idx_dump(FILE *fp, const mm_idx_t *mi)
 		if (size == 0) continue;
 		for (k = 0; k < kh_end(h); ++k) {
 			uint64_t x;
-			bwtintv_x_t y;
+//			bwtintv_x_t y;
+            uint8_t y;
 			if (!kh_exist(h, k)) continue;
 			x = kh_key(h, k);
 			y = kh_val(h, k);
 			fwrite(&x, 8, 1,  fp);
-			fwrite(&y, sizeof(bwtintv_x_t), 1, fp);
-			LOG(stderr, "mm_idx_dump: %lx\n", (x<<mi->b) + i);
+//			fwrite(&y, sizeof(bwtintv_x_t), 1, fp);
+            fwrite(&y, sizeof(uint8_t), 1, fp);
+            LOG(stderr, "mm_idx_dump: %lx\n", (x<<mi->b) + i);
         }
 	}
 
@@ -505,13 +508,16 @@ mm_idx_t *mm_idx_load(FILE *fp)
 		kh_resize(idx, h, size);
 		for (j = 0; j < size; ++j) {
 			uint64_t x;
-			bwtintv_x_t y;
+			uint8_t y;
+//			bwtintv_x_t y;
 			int absent;
 			fread(&x, 8, 1, fp);
-			fread(&y, sizeof(bwtintv_x_t), 1, fp);
+//			fread(&y, sizeof(bwtintv_x_t), 1, fp);
+			fread(&y, sizeof(uint8_t), 1, fp);
+
 			k = kh_put(idx, h, x, &absent);
 			assert(absent);
-			kh_val(h, k) = y;
+			kh_val(h, k) = 1;
 			LOG(stderr, "mm_idx_load: %lx\n", (x<<mi->b) + i);
 		}
 	}
